@@ -94,6 +94,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   String? _selectedPortId;
 
   bool _simulationRunning = false;
+  bool _hasShortCircuit = false;
 
   late final Map<DeviceCategory, List<DeviceTemplate>> _library = _buildLibrary();
 
@@ -334,6 +335,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       _selectedPortId = null;
       _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
     });
+    checkForShortCircuits();
   }
 
   _ResolvedPort? _resolvePortById(String portId) {
@@ -347,17 +349,18 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   bool _arePortsCompatible(String a, String b) {
-    if (a == b) return true;
-    final compatiblePairs = {
-      {portTypeNmeaOutPositive, portTypeNmeaInPositive},
-      {portTypeNmeaOutNegative, portTypeNmeaInNegative},
-    };
-    for (final pair in compatiblePairs) {
-      if (pair.contains(a) && pair.contains(b)) {
-        return true;
-      }
+    if (a == b) {
+      return a == portTypePowerPositive || a == portTypePowerNegative || a == portTypeN2k;
     }
-    return false;
+
+    final bool isPositivePair =
+        (a == portTypeNmeaOutPositive && b == portTypeNmeaInPositive) ||
+            (a == portTypeNmeaInPositive && b == portTypeNmeaOutPositive);
+    final bool isNegativePair =
+        (a == portTypeNmeaOutNegative && b == portTypeNmeaInNegative) ||
+            (a == portTypeNmeaInNegative && b == portTypeNmeaOutNegative);
+
+    return isPositivePair || isNegativePair;
   }
 
   void _handleNewProject() {
@@ -368,6 +371,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       _selectedDeviceId = null;
       _selectedPortId = null;
       _simulationRunning = false;
+      _hasShortCircuit = false;
     });
     _addLog(LogLevel.info, 'Started a new project.');
   }
@@ -397,10 +401,57 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       return;
     }
 
+    checkForShortCircuits();
+    if (_hasShortCircuit) {
+      return;
+    }
+
+    _addLog(LogLevel.ok, 'Electrical topology validated.');
+
     setState(() {
       _simulationRunning = true;
     });
     runSimulation();
+  }
+
+  void checkForShortCircuits() {
+    final Map<CableModel, String> shortMessages = {};
+
+    for (final cable in _cables) {
+      final from = _resolvePortById(cable.fromPortId);
+      final to = _resolvePortById(cable.toPortId);
+      if (from == null || to == null) continue;
+
+      final bool connectsPowerPair =
+          (from.port.type == portTypePowerPositive && to.port.type == portTypePowerNegative) ||
+              (from.port.type == portTypePowerNegative && to.port.type == portTypePowerPositive);
+
+      if (!connectsPowerPair) {
+        continue;
+      }
+
+      final bool sameDevice = from.device.id == to.device.id;
+      final bool bothSources = _isPowerSourceDevice(from.device) && _isPowerSourceDevice(to.device);
+
+      if (sameDevice || bothSources) {
+        final descriptionA = '${from.device.name} ${from.port.name}';
+        final descriptionB = '${to.device.name} ${to.port.name}';
+        shortMessages[cable] = 'Short circuit detected between $descriptionA and $descriptionB. Check wiring.';
+      }
+    }
+
+    final shortSet = shortMessages.keys.toSet();
+
+    setState(() {
+      _hasShortCircuit = shortSet.isNotEmpty;
+      for (final cable in _cables) {
+        cable.isShortCircuit = shortSet.contains(cable);
+      }
+    });
+
+    for (final message in shortMessages.values) {
+      _addLog(LogLevel.error, message);
+    }
   }
 
   void runSimulation() {
@@ -473,6 +524,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       return true;
     }
     return device.batteryCapacityAh != null;
+  }
+
+  bool _isPowerSourceDevice(DeviceModel device) {
+    if (device.category.toLowerCase() == 'power') {
+      return true;
+    }
+    if (device.currentDraw != null && device.currentDraw! < 0) {
+      return true;
+    }
+    return false;
   }
 
   bool _hasDirectConnection(
@@ -638,9 +699,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       final fromOffset = from.device.position + from.port.offset;
       final toOffset = to.device.position + to.port.offset;
       final cableType = _preferredCableType(from.port.type, to.port.type);
-      final cableColor = colorForCable(cableType);
+      final isShort = cable.isShortCircuit;
+      final cableColor = isShort ? const Color(0xFFFF3B30) : colorForCable(cableType);
+      final strokeWidth = isShort ? 5.0 : 3.0;
       yield CustomPaint(
-        painter: _CablePainter(from: fromOffset, to: toOffset, color: cableColor),
+        painter: _CablePainter(
+          from: fromOffset,
+          to: toOffset,
+          color: cableColor,
+          strokeWidth: strokeWidth,
+        ),
         size: Size.infinite,
       );
     }
@@ -674,6 +742,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
             ],
           ),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               Positioned.fill(
                 child: Column(
@@ -1019,10 +1088,15 @@ class DeviceModel {
 }
 
 class CableModel {
-  CableModel({required this.fromPortId, required this.toPortId});
+  CableModel({
+    required this.fromPortId,
+    required this.toPortId,
+    this.isShortCircuit = false,
+  });
 
   final String fromPortId;
   final String toPortId;
+  bool isShortCircuit;
 }
 
 class PositionedPort extends StatelessWidget {
@@ -1039,22 +1113,32 @@ class PositionedPort extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = colorForPort(port.type);
-    final fillColor = isSelected ? baseColor : baseColor.withOpacity(0.8);
+    final fillColor = isSelected ? baseColor : baseColor.withOpacity(0.9);
+    final borderColor = isSelected ? Colors.white : Colors.white24;
     return Positioned(
-      left: port.offset.dx - 12,
-      top: port.offset.dy - 12,
+      left: port.offset.dx - 7,
+      top: port.offset.dy - 7,
       child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
         onTap: onTap,
         child: Tooltip(
           message: port.name,
           waitDuration: const Duration(milliseconds: 300),
-          child: Container(
-            width: 24,
-            height: 24,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 14,
+            height: 14,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: fillColor,
-              border: Border.all(color: isSelected ? Colors.white : Colors.white30, width: isSelected ? 2 : 1.5),
+              border: Border.all(color: borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isSelected ? 0.6 : 0.45),
+                  blurRadius: isSelected ? 6 : 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),
@@ -1103,17 +1187,23 @@ class _GridPainter extends CustomPainter {
 }
 
 class _CablePainter extends CustomPainter {
-  _CablePainter({required this.from, required this.to, required this.color});
+  _CablePainter({
+    required this.from,
+    required this.to,
+    required this.color,
+    required this.strokeWidth,
+  });
 
   final Offset from;
   final Offset to;
   final Color color;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 3
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
     final mid = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
@@ -1129,7 +1219,10 @@ class _CablePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CablePainter oldDelegate) {
-    return oldDelegate.from != from || oldDelegate.to != to || oldDelegate.color != color;
+    return oldDelegate.from != from ||
+        oldDelegate.to != to ||
+        oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
 
