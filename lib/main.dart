@@ -453,7 +453,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               (p1.type == PortTypes.powerNeg && p2.type == PortTypes.powerPos);
 
       if (isShort) {
-        addLog('[ERROR] Short circuit detected between ${p1.name} and ${p2.name}', level: LogLevel.error);
+        addLog('Short circuit detected between ${p1.name} and ${p2.name}', level: LogLevel.error);
         c.isFault = true;
         foundShort = true;
       }
@@ -484,7 +484,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       } else {
         dev.actualVoltage = 0;
         dev.voltageWarning = true;
-        addLog('[WARN] ${dev.name} without full power connection (+/-).', level: LogLevel.warn);
+        addLog('${dev.name} without full power connection (+/-).', level: LogLevel.warn);
       }
     }
 
