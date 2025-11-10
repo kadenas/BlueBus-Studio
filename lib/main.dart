@@ -134,7 +134,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           size: const Size(180, 110),
           nominalVoltage: 12.6,
           currentDraw: -5, // charge reserve placeholder
-          batteryCapacityAh: 100,
+          capacityAh: 100,
+          socPercent: 100,
           defaultVoltage: 12.6,
           ports: const [
             PortTemplate(
@@ -159,7 +160,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           size: const Size(190, 120),
           nominalVoltage: 25.2,
           currentDraw: -8,
-          batteryCapacityAh: 200,
+          capacityAh: 200,
+          socPercent: 100,
           defaultVoltage: 25.2,
           ports: const [
             PortTemplate(
@@ -452,7 +454,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         currentDraw: template.currentDraw,
         category: template.category.label,
         size: template.size,
-        batteryCapacityAh: template.batteryCapacityAh,
+        capacityAh: template.capacityAh,
+        socPercent: template.socPercent,
         defaultVoltage: template.defaultVoltage,
       );
       _devices.add(device);
@@ -477,6 +480,48 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       );
       device.position = clamped;
     });
+  }
+
+  void onPortTap(DeviceModel device, PortModel port) {
+    _handlePortTap(port);
+  }
+
+  void onPortDragStart(DeviceModel device, PortModel port, Offset globalPosition) {
+    final resolved = _resolvePortById(port.globalId);
+    if (resolved == null) return;
+    _tempStartPort = resolved;
+    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      _tempCurrentPosition = renderBox.globalToLocal(globalPosition);
+    } else {
+      _tempCurrentPosition = _getPortCenter(resolved);
+    }
+    setState(() {});
+  }
+
+  void onPortDragUpdate(Offset globalPosition) {
+    if (_tempStartPort == null) return;
+    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    _tempCurrentPosition = renderBox.globalToLocal(globalPosition);
+    setState(() {});
+  }
+
+  void onPortDragEnd() {
+    if (_tempStartPort != null && _tempCurrentPosition != null) {
+      final target = _findPortAtPosition(
+        _tempCurrentPosition!,
+        excludeGlobalId: _tempStartPort!.port.globalId,
+      );
+      if (target != null) {
+        _tryFinishTempConnection(target);
+        return;
+      }
+    }
+
+    _tempStartPort = null;
+    _tempCurrentPosition = null;
+    setState(() {});
   }
 
   void _handlePortTap(PortModel port) {
@@ -531,9 +576,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     final fromId = origin.port.globalId;
     final toId = target.port.globalId;
 
-    if (!portsAreCompatible(origin.port.type, target.port.type)) {
-      addLog('[DEBUG] Tried to connect ${origin.port.type} → ${target.port.type}');
-      addLog('[WARN] Incompatible ports: "${origin.port.type}" vs "${target.port.type}"', level: LogLevel.warn);
+    final originType = origin.port.type.trim();
+    final targetType = target.port.type.trim();
+
+    if (!portsAreCompatible(originType, targetType)) {
+      addLog('[DEBUG] incompatible: "$originType" vs "$targetType"');
+      addLog('[WARN] Incompatible ports: "$originType" vs "$targetType"', level: LogLevel.warn);
       setState(() {
         _selectedPortId = null;
       });
@@ -554,50 +602,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     }
 
     setState(() {
-      final cableType = _preferredCableType(origin.port.type, target.port.type);
+      final cableType = _preferredCableType(originType, targetType);
       _cables.add(CableModel(fromPortId: fromId, toPortId: toId, type: cableType));
       _selectedPortId = null;
     });
     _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
     return true;
-  }
-
-  void _onStartDragPort(PortModel port, DragStartDetails details) {
-    final resolved = _resolvePortById(port.globalId);
-    if (resolved == null) return;
-    _tempStartPort = resolved;
-    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox != null) {
-      _tempCurrentPosition = renderBox.globalToLocal(details.globalPosition);
-    } else {
-      _tempCurrentPosition = _getPortCenter(resolved);
-    }
-    setState(() {});
-  }
-
-  void _onUpdateDragPort(Offset globalPosition) {
-    if (_tempStartPort == null) return;
-    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    _tempCurrentPosition = renderBox.globalToLocal(globalPosition);
-    setState(() {});
-  }
-
-  void _onEndDragPort() {
-    if (_tempStartPort != null && _tempCurrentPosition != null) {
-      final target = _findPortAtPosition(
-        _tempCurrentPosition!,
-        excludeGlobalId: _tempStartPort!.port.globalId,
-      );
-      if (target != null) {
-        _tryFinishTempConnection(target);
-        return;
-      }
-    }
-
-    _tempStartPort = null;
-    _tempCurrentPosition = null;
-    setState(() {});
   }
 
   void _tryFinishTempConnection(_ResolvedPort targetPort) {
@@ -698,7 +708,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     _addLog(LogLevel.info, 'Simulation stopped.');
   }
 
-  void _handleRunSimulation() {
+  Future<void> _handleRunSimulation() async {
+    if (_simulationRunning) {
+      _addLog(LogLevel.info, 'Simulation already running.');
+      return;
+    }
+
     if (_devices.isEmpty) {
       _addLog(LogLevel.warn, 'No devices placed on the canvas.');
       return;
@@ -714,7 +729,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {
       _simulationRunning = true;
     });
-    runSimulation();
+    await runSimulation();
   }
 
   void checkForShortCircuits() {
@@ -747,58 +762,116 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     });
   }
 
-  void runSimulation() {
+  Future<void> runSimulation() async {
+    addLog('[INFO] Simulation started.');
+    setState(() {});
+
     final batteries = _devices.where((d) => d.category == 'Power').toList();
+    final Map<String, double> batteryCurrents = {
+      for (final battery in batteries) battery.id: 0,
+    };
 
     for (final battery in batteries) {
       battery.actualVoltage = battery.nominalVoltage;
       battery.voltageWarning = false;
+      battery.socPercent ??= 100;
     }
 
-    for (final dev in _devices.where((d) => d.category != 'Power')) {
-      final hasPos = _cables.any((c) => isPowerConnectionToDevice(c, dev.id, true, batteries));
-      final hasNeg = _cables.any((c) => isPowerConnectionToDevice(c, dev.id, false, batteries));
+    const stepDelay = Duration(milliseconds: 200);
 
-      if (hasPos && hasNeg && batteries.isNotEmpty) {
-        final batt = batteries.first;
-        final baseVoltage = batt.nominalVoltage ?? 0;
-        dev.actualVoltage = math.max(0, baseVoltage - 0.2);
+    for (final dev in _devices) {
+      await Future.delayed(stepDelay);
+
+      if (dev.category == 'Power') {
+        dev.actualVoltage = dev.nominalVoltage;
         dev.voltageWarning = false;
+        final voltageDisplay = dev.actualVoltage?.toStringAsFixed(1) ?? '0.0';
+        addLog('[OK] ${dev.name} online at ${voltageDisplay}V');
       } else {
-        dev.actualVoltage = 0;
-        dev.voltageWarning = true;
-        addLog('${dev.name} without full power connection (+/-).', level: LogLevel.warn);
+        final hasPos = _cables.any((c) => isPowerConnection(c, dev.id, true, batteries));
+        final hasNeg = _cables.any((c) => isPowerConnection(c, dev.id, false, batteries));
+
+        if (hasPos && hasNeg && batteries.isNotEmpty) {
+          final supplyBattery = _findBatteryForDevice(dev, batteries) ?? (batteries.isNotEmpty ? batteries.first : null);
+          final baseVoltage = supplyBattery?.nominalVoltage ?? supplyBattery?.actualVoltage ?? dev.nominalVoltage ?? 0;
+          dev.actualVoltage = math.max(0, baseVoltage - 0.2);
+          dev.voltageWarning = false;
+          addLog('[OK] ${dev.name} powered: ${dev.actualVoltage!.toStringAsFixed(1)}V');
+
+          final draw = dev.currentDraw ?? 0;
+          if (supplyBattery != null && draw > 0) {
+            batteryCurrents[supplyBattery.id] = (batteryCurrents[supplyBattery.id] ?? 0) + draw;
+          }
+        } else {
+          dev.actualVoltage = 0;
+          dev.voltageWarning = true;
+          addLog('[WARN] ${dev.name} has missing power connection (+/-)');
+        }
       }
+
+      setState(() {});
     }
 
     checkForShortCircuits();
-    setState(() {});
+
+    final simulationSeconds = stepDelay.inMilliseconds / 1000.0 * _devices.length;
+    for (final battery in batteries) {
+      final totalCurrent = batteryCurrents[battery.id] ?? 0;
+      updateBatterySoc(battery, totalCurrent, simulationSeconds);
+    }
+
+    addLog('[INFO] Simulation finished.');
+    setState(() {
+      _simulationRunning = false;
+    });
   }
 
-  bool isPowerConnectionToDevice(
-    CableModel cable,
-    String deviceId,
-    bool isPositive,
-    List<DeviceModel> batteries,
-  ) {
-    final from = findPortByGlobalId(cable.fromPortId);
-    final to = findPortByGlobalId(cable.toPortId);
-    if (from == null || to == null) {
-      return false;
+  bool isPowerConnection(CableModel cable, String deviceId, bool positive, List<DeviceModel> batteries) {
+    final p1 = findPortByGlobalId(cable.fromPortId);
+    final p2 = findPortByGlobalId(cable.toPortId);
+    if (p1 == null || p2 == null) return false;
+
+    final targetType = positive ? PortTypes.powerPos : PortTypes.powerNeg;
+
+    final isDeviceEnd = (p1.deviceId == deviceId && p1.type == targetType) ||
+        (p2.deviceId == deviceId && p2.type == targetType);
+
+    if (!isDeviceEnd) return false;
+
+    final otherEnd = p1.deviceId == deviceId ? p2 : p1;
+    final isBattery = batteries.any((b) => b.id == otherEnd.deviceId);
+
+    return isDeviceEnd && isBattery && otherEnd.type == targetType;
+  }
+
+  DeviceModel? _findBatteryForDevice(DeviceModel device, List<DeviceModel> batteries) {
+    for (final cable in _cables) {
+      final p1 = findPortByGlobalId(cable.fromPortId);
+      final p2 = findPortByGlobalId(cable.toPortId);
+      if (p1 == null || p2 == null) continue;
+
+      final isPositiveEnd = (p1.deviceId == device.id && p1.type == PortTypes.powerPos) ||
+          (p2.deviceId == device.id && p2.type == PortTypes.powerPos);
+
+      if (!isPositiveEnd) continue;
+
+      final other = p1.deviceId == device.id ? p2 : p1;
+      for (final battery in batteries) {
+        if (battery.id == other.deviceId) {
+          return battery;
+        }
+      }
     }
+    return null;
+  }
 
-    final targetType = isPositive ? PortTypes.powerPos : PortTypes.powerNeg;
-
-    final deviceIsFrom = from.deviceId == deviceId;
-    final deviceIsTo = to.deviceId == deviceId;
-    if (!deviceIsFrom && !deviceIsTo) {
-      return false;
-    }
-
-    final other = deviceIsFrom ? to : from;
-    final isBattery = batteries.any((b) => b.id == other.deviceId);
-
-    return other.type == targetType && isBattery;
+  void updateBatterySoc(DeviceModel battery, double totalCurrentA, double seconds) {
+    if (battery.capacityAh == null) return;
+    final consumedAh = totalCurrentA * (seconds / 3600.0);
+    final capacity = battery.capacityAh!;
+    final soc = (battery.socPercent ?? 100);
+    final newSoc = soc - (consumedAh / capacity) * 100;
+    battery.socPercent = newSoc.clamp(0, 100);
   }
 
   String _preferredCableType(String a, String b) {
@@ -1020,20 +1093,55 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                   ],
                 ),
               ),
-              ...List.generate(device.ports.length, (index) {
-                final port = device.ports[index];
-                final portId = port.globalId;
-                final isPortSelected = _selectedPortId == portId;
-                return PositionedPort(
-                  port: port,
-                  isSelected: isPortSelected,
-                  onTap: () => _handlePortTap(port),
-                  onPanStart: (details) => _onStartDragPort(port, details),
-                  onPanUpdate: (details) => _onUpdateDragPort(details.globalPosition),
-                  onPanEnd: (_) => _onEndDragPort(),
-                );
-              }),
+              ...device.ports.map((port) => buildPortWidget(device, port)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildPortWidget(DeviceModel device, PortModel port) {
+    final isSelected = _selectedPortId == port.globalId;
+    return Positioned(
+      left: port.offset.dx - 7,
+      top: port.offset.dy - 7,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => onPortTap(device, port),
+        onPanStart: (details) => onPortDragStart(device, port, details.globalPosition),
+        onPanUpdate: (details) => onPortDragUpdate(details.globalPosition),
+        onPanEnd: (_) => onPortDragEnd(),
+        onPanCancel: onPortDragEnd,
+        child: Tooltip(
+          message: port.name,
+          waitDuration: const Duration(milliseconds: 300),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isSelected)
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white60, width: 1),
+                    ),
+                  ),
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: colorForPort(port.type),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24, width: 1),
+                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1090,6 +1198,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                         ),
                       ),
                       _PropertyRow(label: 'Current Draw', value: currentDraw),
+                      if (device.capacityAh != null)
+                        _PropertyRow(
+                          label: 'Capacity',
+                          value: '${device.capacityAh!.toStringAsFixed(0)} Ah',
+                        ),
+                      if (device.socPercent != null)
+                        _PropertyRow(
+                          label: 'State of Charge',
+                          value: '${device.socPercent!.toStringAsFixed(1)} %',
+                        ),
                       const SizedBox(height: 12),
                       Text('Ports', style: Theme.of(context).textTheme.titleSmall),
                       const SizedBox(height: 8),
@@ -1272,7 +1390,8 @@ class DeviceTemplate {
     required this.nominalVoltage,
     required this.currentDraw,
     required this.defaultVoltage,
-    this.batteryCapacityAh,
+    this.capacityAh,
+    this.socPercent,
     required this.ports,
   });
 
@@ -1284,7 +1403,8 @@ class DeviceTemplate {
   final double nominalVoltage;
   final double currentDraw;
   final double defaultVoltage;
-  final double? batteryCapacityAh;
+  final double? capacityAh;
+  final double? socPercent;
   final List<PortTemplate> ports;
 }
 
@@ -1332,7 +1452,8 @@ class DeviceModel {
     required this.category,
     required this.size,
     this.model,
-    this.batteryCapacityAh,
+    this.capacityAh,
+    this.socPercent,
     this.defaultVoltage,
   });
 
@@ -1346,7 +1467,8 @@ class DeviceModel {
   final String category;
   final Size size;
   final String? model;
-  final double? batteryCapacityAh;
+  final double? capacityAh;
+  double? socPercent;
   final double? defaultVoltage;
   bool voltageWarning = false;
 }
@@ -1363,75 +1485,6 @@ class CableModel {
   final String toPortId;
   final String type;
   bool isFault;
-}
-
-class PositionedPort extends StatelessWidget {
-  const PositionedPort({
-    required this.port,
-    required this.isSelected,
-    required this.onTap,
-    this.onPanStart,
-    this.onPanUpdate,
-    this.onPanEnd,
-  });
-
-  final PortModel port;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final GestureDragStartCallback? onPanStart;
-  final GestureDragUpdateCallback? onPanUpdate;
-  final GestureDragEndCallback? onPanEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: port.offset.dx - 7,
-      top: port.offset.dy - 7,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onTap,
-        onPanStart: onPanStart,
-        onPanUpdate: onPanUpdate,
-        onPanEnd: onPanEnd,
-        onPanCancel: () {
-          if (onPanEnd != null) {
-            onPanEnd!(DragEndDetails());
-          }
-        },
-        child: Tooltip(
-          message: port.name,
-          waitDuration: const Duration(milliseconds: 300),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (isSelected)
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white60, width: 1),
-                    ),
-                  ),
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: colorForPort(port.type),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white24, width: 1),
-                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ResolvedPort {
