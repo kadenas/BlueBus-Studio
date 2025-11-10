@@ -2,6 +2,37 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+const String portTypePowerPositive = 'POWER_POS';
+const String portTypePowerNegative = 'POWER_NEG';
+const String portTypeNmeaOutPositive = 'NMEA_OUT_POS';
+const String portTypeNmeaOutNegative = 'NMEA_OUT_NEG';
+const String portTypeNmeaInPositive = 'NMEA_IN_POS';
+const String portTypeNmeaInNegative = 'NMEA_IN_NEG';
+const String portTypeN2k = 'N2K';
+
+Color colorForPort(String type) {
+  switch (type) {
+    case portTypePowerPositive:
+      return const Color(0xFFFF3B30);
+    case portTypePowerNegative:
+      return const Color(0xFF000000);
+    case portTypeNmeaOutPositive:
+    case portTypeNmeaInPositive:
+      return const Color(0xFF30C97A);
+    case portTypeNmeaOutNegative:
+    case portTypeNmeaInNegative:
+      return const Color(0xFFE6C229);
+    case portTypeN2k:
+      return const Color(0xFF0080FF);
+    default:
+      return const Color(0xFF9E9E9E);
+  }
+}
+
+Color colorForCable(String type) {
+  return colorForPort(type);
+}
+
 void main() {
   runApp(const BlueBusApp());
 }
@@ -55,7 +86,7 @@ class BlueBusHomePage extends StatefulWidget {
 }
 
 class _BlueBusHomePageState extends State<BlueBusHomePage> {
-  final List<DeviceInstance> _devices = [];
+  final List<DeviceModel> _devices = [];
   final List<CableModel> _cables = [];
   final List<LogEntry> _logs = [];
 
@@ -80,8 +111,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           batteryCapacityAh: 100,
           defaultVoltage: 12.6,
           ports: const [
-            PortTemplate(name: 'Positive', type: PortType.powerPositive, offset: Offset(30, 90)),
-            PortTemplate(name: 'Negative', type: PortType.powerNegative, offset: Offset(150, 90)),
+            PortTemplate(name: 'Positive', type: portTypePowerPositive, offset: Offset(30, 90)),
+            PortTemplate(name: 'Negative', type: portTypePowerNegative, offset: Offset(150, 90)),
           ],
         ),
         DeviceTemplate(
@@ -95,8 +126,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           batteryCapacityAh: 200,
           defaultVoltage: 25.2,
           ports: const [
-            PortTemplate(name: 'Positive', type: PortType.powerPositive, offset: Offset(40, 100)),
-            PortTemplate(name: 'Negative', type: PortType.powerNegative, offset: Offset(150, 100)),
+            PortTemplate(name: 'Positive', type: portTypePowerPositive, offset: Offset(40, 100)),
+            PortTemplate(name: 'Negative', type: portTypePowerNegative, offset: Offset(150, 100)),
           ],
         ),
       ],
@@ -111,10 +142,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 0.3,
           defaultVoltage: 11.7,
           ports: const [
-            PortTemplate(name: 'Power +', type: PortType.powerPositive, offset: Offset(20, 90)),
-            PortTemplate(name: 'Power -', type: PortType.powerNegative, offset: Offset(60, 90)),
-            PortTemplate(name: 'NMEA OUT +', type: PortType.nmea0183Positive, offset: Offset(140, 30)),
-            PortTemplate(name: 'NMEA OUT -', type: PortType.nmea0183Negative, offset: Offset(140, 70)),
+            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 90)),
+            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(60, 90)),
+            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(140, 30)),
+            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(140, 70)),
           ],
         ),
         DeviceTemplate(
@@ -127,13 +158,13 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 2.5,
           defaultVoltage: 11.4,
           ports: const [
-            PortTemplate(name: 'Power +', type: PortType.powerPositive, offset: Offset(20, 120)),
-            PortTemplate(name: 'Power -', type: PortType.powerNegative, offset: Offset(70, 120)),
-            PortTemplate(name: 'NMEA IN +', type: PortType.nmea0183Positive, offset: Offset(10, 40)),
-            PortTemplate(name: 'NMEA IN -', type: PortType.nmea0183Negative, offset: Offset(10, 80)),
-            PortTemplate(name: 'NMEA OUT +', type: PortType.nmea0183Positive, offset: Offset(210, 40)),
-            PortTemplate(name: 'NMEA OUT -', type: PortType.nmea0183Negative, offset: Offset(210, 80)),
-            PortTemplate(name: 'N2K Backbone', type: PortType.nmea2000, offset: Offset(190, 120)),
+            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 120)),
+            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(70, 120)),
+            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 40)),
+            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 80)),
+            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(210, 40)),
+            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(210, 80)),
+            PortTemplate(name: 'N2K Backbone', type: portTypeN2k, offset: Offset(190, 120)),
           ],
         ),
         DeviceTemplate(
@@ -146,13 +177,13 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 1.8,
           defaultVoltage: 11.8,
           ports: const [
-            PortTemplate(name: 'Power +', type: PortType.powerPositive, offset: Offset(30, 105)),
-            PortTemplate(name: 'Power -', type: PortType.powerNegative, offset: Offset(80, 105)),
-            PortTemplate(name: 'NMEA IN +', type: PortType.nmea0183Positive, offset: Offset(10, 40)),
-            PortTemplate(name: 'NMEA IN -', type: PortType.nmea0183Negative, offset: Offset(10, 70)),
-            PortTemplate(name: 'NMEA OUT +', type: PortType.nmea0183Positive, offset: Offset(190, 40)),
-            PortTemplate(name: 'NMEA OUT -', type: PortType.nmea0183Negative, offset: Offset(190, 70)),
-            PortTemplate(name: 'N2K Backbone', type: PortType.nmea2000, offset: Offset(160, 105)),
+            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(30, 105)),
+            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(80, 105)),
+            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 40)),
+            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 70)),
+            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(190, 40)),
+            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(190, 70)),
+            PortTemplate(name: 'N2K Backbone', type: portTypeN2k, offset: Offset(160, 105)),
           ],
         ),
       ],
@@ -167,10 +198,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 1.5,
           defaultVoltage: 11.9,
           ports: const [
-            PortTemplate(name: 'Power +', type: PortType.powerPositive, offset: Offset(30, 120)),
-            PortTemplate(name: 'Power -', type: PortType.powerNegative, offset: Offset(80, 120)),
-            PortTemplate(name: 'NMEA IN +', type: PortType.nmea0183Positive, offset: Offset(10, 50)),
-            PortTemplate(name: 'NMEA IN -', type: PortType.nmea0183Negative, offset: Offset(10, 80)),
+            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(30, 120)),
+            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(80, 120)),
+            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 50)),
+            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 80)),
           ],
         ),
         DeviceTemplate(
@@ -183,12 +214,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 0.6,
           defaultVoltage: 11.6,
           ports: const [
-            PortTemplate(name: 'Power +', type: PortType.powerPositive, offset: Offset(20, 95)),
-            PortTemplate(name: 'Power -', type: PortType.powerNegative, offset: Offset(70, 95)),
-            PortTemplate(name: 'NMEA IN +', type: PortType.nmea0183Positive, offset: Offset(10, 30)),
-            PortTemplate(name: 'NMEA IN -', type: PortType.nmea0183Negative, offset: Offset(10, 60)),
-            PortTemplate(name: 'NMEA OUT +', type: PortType.nmea0183Positive, offset: Offset(190, 30)),
-            PortTemplate(name: 'NMEA OUT -', type: PortType.nmea0183Negative, offset: Offset(190, 60)),
+            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 95)),
+            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(70, 95)),
+            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 30)),
+            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 60)),
+            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(190, 30)),
+            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(190, 60)),
           ],
         ),
       ],
@@ -210,11 +241,21 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   void _handleAddDevice(DeviceTemplate template) {
     setState(() {
       final id = 'device_${_devices.length + 1}';
-      final device = DeviceInstance(
+      final device = DeviceModel(
         id: id,
-        template: template,
+        name: template.catalogName,
+        model: template.model,
         position: const Offset(80, 80),
+        ports: template.ports
+            .map((port) => PortModel(name: port.name, type: port.type, offset: port.offset))
+            .toList(),
+        nominalVoltage: template.nominalVoltage,
         actualVoltage: template.defaultVoltage,
+        currentDraw: template.currentDraw,
+        category: template.category.label,
+        size: template.size,
+        batteryCapacityAh: template.batteryCapacityAh,
+        defaultVoltage: template.defaultVoltage,
       );
       _devices.add(device);
       _selectedDeviceId = id;
@@ -233,14 +274,14 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       final device = _devices.firstWhere((d) => d.id == deviceId);
       final newPosition = device.position + delta;
       final clamped = Offset(
-        newPosition.dx.clamp(10, math.max(10, canvasSize.width - device.template.size.width - 10)),
-        newPosition.dy.clamp(10, math.max(10, canvasSize.height - device.template.size.height - 10)),
+        newPosition.dx.clamp(10, math.max(10, canvasSize.width - device.size.width - 10)),
+        newPosition.dy.clamp(10, math.max(10, canvasSize.height - device.size.height - 10)),
       );
       device.position = clamped;
     });
   }
 
-  void _handlePortTap(DeviceInstance device, int portIndex) {
+  void _handlePortTap(DeviceModel device, int portIndex) {
     final portId = '${device.id}:$portIndex';
     final selectedPort = _selectedPortId;
     if (selectedPort == null) {
@@ -291,25 +332,30 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {
       _cables.add(CableModel(fromPortId: selectedPort, toPortId: portId));
       _selectedPortId = null;
-      _addLog(LogLevel.ok, 'Created connection between ${origin.device.template.catalogName} and ${target.device.template.catalogName}.');
+      _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
     });
   }
 
   _ResolvedPort? _resolvePortById(String portId) {
     final split = portId.split(':');
     if (split.length != 2) return null;
-    final device = _devices.where((d) => d.id == split.first).cast<DeviceInstance?>().firstWhere((d) => d != null, orElse: () => null);
+    final device = _devices.where((d) => d.id == split.first).cast<DeviceModel?>().firstWhere((d) => d != null, orElse: () => null);
     if (device == null) return null;
     final index = int.tryParse(split.last);
-    if (index == null || index < 0 || index >= device.template.ports.length) return null;
-    return _ResolvedPort(device: device, port: device.template.ports[index], portIndex: index);
+    if (index == null || index < 0 || index >= device.ports.length) return null;
+    return _ResolvedPort(device: device, port: device.ports[index], portIndex: index);
   }
 
-  bool _arePortsCompatible(PortType a, PortType b) {
+  bool _arePortsCompatible(String a, String b) {
     if (a == b) return true;
-    if ((a == PortType.powerPositive && b == PortType.powerPositive) ||
-        (a == PortType.powerNegative && b == PortType.powerNegative)) {
-      return true;
+    final compatiblePairs = {
+      {portTypeNmeaOutPositive, portTypeNmeaInPositive},
+      {portTypeNmeaOutNegative, portTypeNmeaInNegative},
+    };
+    for (final pair in compatiblePairs) {
+      if (pair.contains(a) && pair.contains(b)) {
+        return true;
+      }
     }
     return false;
   }
@@ -339,7 +385,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       _simulationRunning = false;
       for (final device in _devices) {
         device.voltageWarning = false;
-        device.actualVoltage = device.template.defaultVoltage;
+        device.actualVoltage = device.defaultVoltage ?? device.nominalVoltage;
       }
     });
     _addLog(LogLevel.info, 'Simulation stopped.');
@@ -354,47 +400,113 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {
       _simulationRunning = true;
     });
+    runSimulation();
+  }
 
-    double totalCurrent = 0;
-    double totalCapacity = 0;
+  void runSimulation() {
+    final batteries = _devices.where(_isBatteryDevice).toList();
+    final List<DeviceModel> warnings = [];
 
-    for (final device in _devices) {
-      if (device.template.batteryCapacityAh != null) {
-        totalCapacity += device.template.batteryCapacityAh!;
-      } else {
-        totalCurrent += device.template.currentDraw;
-      }
-    }
-
-    if (totalCapacity <= 0) {
-      _addLog(LogLevel.warn, 'No battery capacity detected. Add a battery to power the system.');
-    }
-
-    if (totalCapacity > 0 && totalCurrent > totalCapacity * 0.8) {
-      _addLog(LogLevel.warn, '[WARN] Load is above 80% of available battery capacity.');
-    }
-
-    for (final device in _devices) {
-      if (device.template.batteryCapacityAh != null) {
-        device.actualVoltage = device.template.nominalVoltage;
+    setState(() {
+      for (final device in _devices) {
         device.voltageWarning = false;
-        continue;
+        if (device.nominalVoltage != null) {
+          device.actualVoltage = device.nominalVoltage;
+        } else {
+          device.actualVoltage = null;
+        }
       }
 
-      final loadFactor = totalCapacity > 0 ? (totalCurrent / totalCapacity).clamp(0.0, 2.0) : 1.2;
-      final drop = loadFactor > 0.5 ? (loadFactor - 0.5) * 1.4 : 0.0;
-      device.actualVoltage = (device.template.nominalVoltage - drop).clamp(0, device.template.nominalVoltage);
-      final warn = device.actualVoltage < device.template.nominalVoltage - 0.5;
-      device.voltageWarning = warn;
-      if (warn) {
-        _addLog(
-          LogLevel.warn,
-          '[WARN] ${device.template.catalogName} voltage low (${device.actualVoltage.toStringAsFixed(1)}V).',
-        );
+      for (final battery in batteries) {
+        battery.actualVoltage = battery.nominalVoltage;
+        for (final target in _devices) {
+          if (target.id == battery.id) continue;
+          final hasPositive = _hasDirectConnection(
+            battery.id,
+            portTypePowerPositive,
+            target.id,
+            portTypePowerPositive,
+          );
+          final hasNegative = _hasDirectConnection(
+            battery.id,
+            portTypePowerNegative,
+            target.id,
+            portTypePowerNegative,
+          );
+
+          if (hasPositive && hasNegative && battery.nominalVoltage != null) {
+            final supplyVoltage = (battery.nominalVoltage! - 0.2).clamp(0.0, battery.nominalVoltage!);
+            target.actualVoltage = supplyVoltage;
+          }
+        }
       }
+
+      for (final device in _devices) {
+        final nominal = device.nominalVoltage;
+        final actual = device.actualVoltage;
+        if (nominal != null && actual != null && actual < nominal - 0.5) {
+          device.voltageWarning = true;
+          warnings.add(device);
+        }
+      }
+    });
+
+    if (batteries.isEmpty) {
+      _addLog(LogLevel.warn, 'No batteries available to power devices.');
+    }
+
+    for (final device in warnings) {
+      _addLog(
+        LogLevel.warn,
+        '[WARN] ${device.name} low voltage: ${device.actualVoltage?.toStringAsFixed(1) ?? 'N/A'} V',
+      );
     }
 
     _addLog(LogLevel.ok, 'Simulation completed.');
+  }
+
+  bool _isBatteryDevice(DeviceModel device) {
+    if (device.category.toLowerCase() != 'power') {
+      return false;
+    }
+    if (device.currentDraw != null && device.currentDraw! < 0) {
+      return true;
+    }
+    return device.batteryCapacityAh != null;
+  }
+
+  bool _hasDirectConnection(
+    String fromDeviceId,
+    String fromType,
+    String toDeviceId,
+    String toType,
+  ) {
+    for (final cable in _cables) {
+      final from = _resolvePortById(cable.fromPortId);
+      final to = _resolvePortById(cable.toPortId);
+      if (from == null || to == null) continue;
+      final bool matchesForward =
+          from.device.id == fromDeviceId && from.port.type == fromType && to.device.id == toDeviceId && to.port.type == toType;
+      final bool matchesBackward =
+          to.device.id == fromDeviceId && to.port.type == fromType && from.device.id == toDeviceId && from.port.type == toType;
+      if (matchesForward || matchesBackward) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _preferredCableType(String a, String b) {
+    if (a == b) return a;
+    if ({portTypeNmeaOutPositive, portTypeNmeaInPositive}.contains(a) &&
+        {portTypeNmeaOutPositive, portTypeNmeaInPositive}.contains(b)) {
+      return portTypeNmeaOutPositive;
+    }
+    if ({portTypeNmeaOutNegative, portTypeNmeaInNegative}.contains(a) &&
+        {portTypeNmeaOutNegative, portTypeNmeaInNegative}.contains(b)) {
+      return portTypeNmeaOutNegative;
+    }
+    return a;
   }
 
   @override
@@ -525,14 +637,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       if (from == null || to == null) continue;
       final fromOffset = from.device.position + from.port.offset;
       final toOffset = to.device.position + to.port.offset;
+      final cableType = _preferredCableType(from.port.type, to.port.type);
+      final cableColor = colorForCable(cableType);
       yield CustomPaint(
-        painter: _CablePainter(from: fromOffset, to: toOffset),
+        painter: _CablePainter(from: fromOffset, to: toOffset, color: cableColor),
         size: Size.infinite,
       );
     }
   }
 
-  Widget _buildDeviceWidget(DeviceInstance device, Size canvasSize) {
+  Widget _buildDeviceWidget(DeviceModel device, Size canvasSize) {
     final isSelected = _selectedDeviceId == device.id;
     final borderColor = device.voltageWarning ? Colors.redAccent : (isSelected ? Theme.of(context).colorScheme.primary : Colors.white24);
     return Positioned(
@@ -543,8 +657,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         onPanUpdate: (details) => _handleMoveDevice(device.id, details.delta, canvasSize),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: device.template.size.width,
-          height: device.template.size.height,
+          width: device.size.width,
+          height: device.size.height,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFF161B22),
@@ -571,7 +685,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            device.template.catalogName,
+                            device.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -579,12 +693,13 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(device.template.model, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                    if (device.model != null)
+                      Text(device.model!, style: const TextStyle(fontSize: 12, color: Colors.white54)),
                   ],
                 ),
               ),
-              ...List.generate(device.template.ports.length, (index) {
-                final port = device.template.ports[index];
+              ...List.generate(device.ports.length, (index) {
+                final port = device.ports[index];
                 final portId = '${device.id}:$index';
                 final isPortSelected = _selectedPortId == portId;
                 return PositionedPort(
@@ -601,7 +716,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   Widget _buildPropertiesPanel(ColorScheme colorScheme) {
-    final selected = _devices.where((d) => d.id == _selectedDeviceId).cast<DeviceInstance?>().firstWhere((d) => d != null, orElse: () => null);
+    final selected = _devices
+        .where((d) => d.id == _selectedDeviceId)
+        .cast<DeviceModel?>()
+        .firstWhere((d) => d != null, orElse: () => null);
     return Container(
       padding: const EdgeInsets.all(16),
       color: colorScheme.surface,
@@ -618,38 +736,66 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
             )
           else
             Expanded(
-              child: ListView(
-                children: [
-                  _PropertyRow(label: 'Name', value: selected.template.catalogName),
-                  _PropertyRow(label: 'Type', value: selected.template.model),
-                  _PropertyRow(label: 'Category', value: selected.template.category.label),
-                  _PropertyRow(label: 'Nominal Voltage', value: '${selected.template.nominalVoltage.toStringAsFixed(1)} V'),
-                  _PropertyRow(label: 'Actual Voltage', value: '${selected.actualVoltage.toStringAsFixed(1)} V'),
-                  _PropertyRow(label: 'Current Draw', value: '${selected.template.currentDraw.toStringAsFixed(2)} A'),
-                  if (selected.template.batteryCapacityAh != null)
-                    _PropertyRow(label: 'Capacity', value: '${selected.template.batteryCapacityAh!.toStringAsFixed(0)} Ah'),
-                  const SizedBox(height: 12),
-                  Text('Ports', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 8),
-                  ...selected.template.ports.map(
-                    (port) => Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
+              child: Builder(
+                builder: (context) {
+                  final device = selected!;
+                  final nominalVoltage = device.nominalVoltage != null
+                      ? '${device.nominalVoltage!.toStringAsFixed(1)} V'
+                      : '—';
+                  final actualVoltageValue = device.actualVoltage != null
+                      ? '${device.actualVoltage!.toStringAsFixed(1)} V'
+                      : '—';
+                  final isLowVoltage = device.actualVoltage != null &&
+                      device.nominalVoltage != null &&
+                      device.actualVoltage! < device.nominalVoltage! - 0.5;
+                  final currentDraw = device.currentDraw != null
+                      ? '${device.currentDraw!.toStringAsFixed(2)} A'
+                      : '—';
+                  return ListView(
+                    children: [
+                      _PropertyRow(label: 'Name', value: device.name),
+                      _PropertyRow(label: 'Category', value: device.category),
+                      _PropertyRow(label: 'Nominal Voltage', value: nominalVoltage),
+                      _PropertyRow(
+                        label: 'Actual Voltage',
+                        value: actualVoltageValue,
+                        valueStyle: TextStyle(
+                          color: isLowVoltage ? Colors.redAccent : Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.circle, size: 10, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(port.name)),
-                          Text(port.type.label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                        ],
+                      _PropertyRow(label: 'Current Draw', value: currentDraw),
+                      const SizedBox(height: 12),
+                      Text('Ports', style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      ...device.ports.map(
+                        (port) {
+                          final portColor = colorForPort(port.type);
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(color: portColor, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(port.name)),
+                                Text(portTypeLabel(port.type), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
         ],
@@ -825,22 +971,50 @@ class PortTemplate {
   });
 
   final String name;
-  final PortType type;
+  final String type;
   final Offset offset;
 }
 
-class DeviceInstance {
-  DeviceInstance({
+class PortModel {
+  PortModel({
+    required this.name,
+    required this.type,
+    required this.offset,
+  });
+
+  final String name;
+  final String type;
+  final Offset offset;
+}
+
+class DeviceModel {
+  DeviceModel({
     required this.id,
-    required this.template,
+    required this.name,
     required this.position,
+    required this.ports,
+    required this.nominalVoltage,
     required this.actualVoltage,
+    required this.currentDraw,
+    required this.category,
+    required this.size,
+    this.model,
+    this.batteryCapacityAh,
+    this.defaultVoltage,
   });
 
   final String id;
-  final DeviceTemplate template;
+  final String name;
   Offset position;
-  double actualVoltage;
+  final List<PortModel> ports;
+  final double? nominalVoltage;
+  double? actualVoltage;
+  final double? currentDraw;
+  final String category;
+  final Size size;
+  final String? model;
+  final double? batteryCapacityAh;
+  final double? defaultVoltage;
   bool voltageWarning = false;
 }
 
@@ -858,12 +1032,14 @@ class PositionedPort extends StatelessWidget {
     required this.onTap,
   });
 
-  final PortTemplate port;
+  final PortModel port;
   final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final baseColor = colorForPort(port.type);
+    final fillColor = isSelected ? baseColor : baseColor.withOpacity(0.8);
     return Positioned(
       left: port.offset.dx - 12,
       top: port.offset.dy - 12,
@@ -877,12 +1053,9 @@ class PositionedPort extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.primary.withOpacity(0.4),
-              border: Border.all(color: Colors.white30, width: 1),
+              color: fillColor,
+              border: Border.all(color: isSelected ? Colors.white : Colors.white30, width: isSelected ? 2 : 1.5),
             ),
-            child: const Icon(Icons.circle, size: 10, color: Colors.black87),
           ),
         ),
       ),
@@ -893,8 +1066,8 @@ class PositionedPort extends StatelessWidget {
 class _ResolvedPort {
   _ResolvedPort({required this.device, required this.port, required this.portIndex});
 
-  final DeviceInstance device;
-  final PortTemplate port;
+  final DeviceModel device;
+  final PortModel port;
   final int portIndex;
 }
 
@@ -930,15 +1103,16 @@ class _GridPainter extends CustomPainter {
 }
 
 class _CablePainter extends CustomPainter {
-  _CablePainter({required this.from, required this.to});
+  _CablePainter({required this.from, required this.to, required this.color});
 
   final Offset from;
   final Offset to;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF00AEEF)
+      ..color = color
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
@@ -955,7 +1129,7 @@ class _CablePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CablePainter oldDelegate) {
-    return oldDelegate.from != from || oldDelegate.to != to;
+    return oldDelegate.from != from || oldDelegate.to != to || oldDelegate.color != color;
   }
 }
 
@@ -1014,36 +1188,33 @@ extension DeviceCategoryX on DeviceCategory {
   }
 }
 
-enum PortType {
-  powerPositive,
-  powerNegative,
-  nmea0183Positive,
-  nmea0183Negative,
-  nmea2000,
-}
-
-extension PortTypeX on PortType {
-  String get label {
-    switch (this) {
-      case PortType.powerPositive:
-        return 'Power +';
-      case PortType.powerNegative:
-        return 'Power -';
-      case PortType.nmea0183Positive:
-        return 'NMEA 0183 +';
-      case PortType.nmea0183Negative:
-        return 'NMEA 0183 -';
-      case PortType.nmea2000:
-        return 'NMEA 2000';
-    }
+String portTypeLabel(String type) {
+  switch (type) {
+    case portTypePowerPositive:
+      return 'Power +';
+    case portTypePowerNegative:
+      return 'Power -';
+    case portTypeNmeaOutPositive:
+      return 'NMEA OUT +';
+    case portTypeNmeaOutNegative:
+      return 'NMEA OUT -';
+    case portTypeNmeaInPositive:
+      return 'NMEA IN +';
+    case portTypeNmeaInNegative:
+      return 'NMEA IN -';
+    case portTypeN2k:
+      return 'N2K';
+    default:
+      return type;
   }
 }
 
 class _PropertyRow extends StatelessWidget {
-  const _PropertyRow({required this.label, required this.value});
+  const _PropertyRow({required this.label, required this.value, this.valueStyle});
 
   final String label;
   final String value;
+  final TextStyle? valueStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -1052,7 +1223,12 @@ class _PropertyRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.white54))),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(
+            child: Text(
+              value,
+              style: valueStyle ?? const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
