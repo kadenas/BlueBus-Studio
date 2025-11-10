@@ -2,35 +2,53 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-const String portTypePowerPositive = 'POWER_POS';
-const String portTypePowerNegative = 'POWER_NEG';
-const String portTypeNmeaOutPositive = 'NMEA_OUT_POS';
-const String portTypeNmeaOutNegative = 'NMEA_OUT_NEG';
-const String portTypeNmeaInPositive = 'NMEA_IN_POS';
-const String portTypeNmeaInNegative = 'NMEA_IN_NEG';
-const String portTypeN2k = 'N2K';
+class PortTypes {
+  static const powerPos = 'POWER_POS';
+  static const powerNeg = 'POWER_NEG';
+  static const nmeaInPos = 'NMEA_IN_POS';
+  static const nmeaInNeg = 'NMEA_IN_NEG';
+  static const nmeaOutPos = 'NMEA_OUT_POS';
+  static const nmeaOutNeg = 'NMEA_OUT_NEG';
+  static const n2k = 'N2K';
+}
 
 Color colorForPort(String type) {
   switch (type) {
-    case portTypePowerPositive:
+    case PortTypes.powerPos:
       return const Color(0xFFFF3B30);
-    case portTypePowerNegative:
+    case PortTypes.powerNeg:
       return const Color(0xFF000000);
-    case portTypeNmeaOutPositive:
-    case portTypeNmeaInPositive:
+    case PortTypes.nmeaInPos:
+    case PortTypes.nmeaOutPos:
       return const Color(0xFF30C97A);
-    case portTypeNmeaOutNegative:
-    case portTypeNmeaInNegative:
+    case PortTypes.nmeaInNeg:
+    case PortTypes.nmeaOutNeg:
       return const Color(0xFFE6C229);
-    case portTypeN2k:
+    case PortTypes.n2k:
       return const Color(0xFF0080FF);
     default:
-      return const Color(0xFF9E9E9E);
+      return const Color(0xFFFFFFFF);
   }
 }
 
-Color colorForCable(String type) {
-  return colorForPort(type);
+Color colorForCable(String type) => colorForPort(type);
+
+bool portsAreCompatible(String a, String b) {
+  a = a.trim();
+  b = b.trim();
+
+  final isPowerPos = a == PortTypes.powerPos && b == PortTypes.powerPos;
+  final isPowerNeg = a == PortTypes.powerNeg && b == PortTypes.powerNeg;
+
+  final isNmeaPos = (a == PortTypes.nmeaOutPos && b == PortTypes.nmeaInPos) ||
+      (b == PortTypes.nmeaOutPos && a == PortTypes.nmeaInPos);
+
+  final isNmeaNeg = (a == PortTypes.nmeaOutNeg && b == PortTypes.nmeaInNeg) ||
+      (b == PortTypes.nmeaOutNeg && a == PortTypes.nmeaInNeg);
+
+  final isN2k = a == PortTypes.n2k && b == PortTypes.n2k;
+
+  return isPowerPos || isPowerNeg || isNmeaPos || isNmeaNeg || isN2k;
 }
 
 void main() {
@@ -112,8 +130,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           batteryCapacityAh: 100,
           defaultVoltage: 12.6,
           ports: const [
-            PortTemplate(name: 'Positive', type: portTypePowerPositive, offset: Offset(30, 90)),
-            PortTemplate(name: 'Negative', type: portTypePowerNegative, offset: Offset(150, 90)),
+            PortTemplate(name: 'Positive', type: PortTypes.powerPos, offset: Offset(30, 90)),
+            PortTemplate(name: 'Negative', type: PortTypes.powerNeg, offset: Offset(150, 90)),
           ],
         ),
         DeviceTemplate(
@@ -127,8 +145,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           batteryCapacityAh: 200,
           defaultVoltage: 25.2,
           ports: const [
-            PortTemplate(name: 'Positive', type: portTypePowerPositive, offset: Offset(40, 100)),
-            PortTemplate(name: 'Negative', type: portTypePowerNegative, offset: Offset(150, 100)),
+            PortTemplate(name: 'Positive', type: PortTypes.powerPos, offset: Offset(40, 100)),
+            PortTemplate(name: 'Negative', type: PortTypes.powerNeg, offset: Offset(150, 100)),
           ],
         ),
       ],
@@ -143,10 +161,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 0.3,
           defaultVoltage: 11.7,
           ports: const [
-            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 90)),
-            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(60, 90)),
-            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(140, 30)),
-            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(140, 70)),
+            PortTemplate(name: 'Power +', type: PortTypes.powerPos, offset: Offset(20, 90)),
+            PortTemplate(name: 'Power -', type: PortTypes.powerNeg, offset: Offset(60, 90)),
+            PortTemplate(name: 'NMEA OUT +', type: PortTypes.nmeaOutPos, offset: Offset(140, 30)),
+            PortTemplate(name: 'NMEA OUT -', type: PortTypes.nmeaOutNeg, offset: Offset(140, 70)),
           ],
         ),
         DeviceTemplate(
@@ -159,13 +177,13 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 2.5,
           defaultVoltage: 11.4,
           ports: const [
-            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 120)),
-            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(70, 120)),
-            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 40)),
-            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 80)),
-            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(210, 40)),
-            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(210, 80)),
-            PortTemplate(name: 'N2K Backbone', type: portTypeN2k, offset: Offset(190, 120)),
+            PortTemplate(name: 'Power +', type: PortTypes.powerPos, offset: Offset(20, 120)),
+            PortTemplate(name: 'Power -', type: PortTypes.powerNeg, offset: Offset(70, 120)),
+            PortTemplate(name: 'NMEA IN +', type: PortTypes.nmeaInPos, offset: Offset(10, 40)),
+            PortTemplate(name: 'NMEA IN -', type: PortTypes.nmeaInNeg, offset: Offset(10, 80)),
+            PortTemplate(name: 'NMEA OUT +', type: PortTypes.nmeaOutPos, offset: Offset(210, 40)),
+            PortTemplate(name: 'NMEA OUT -', type: PortTypes.nmeaOutNeg, offset: Offset(210, 80)),
+            PortTemplate(name: 'N2K Backbone', type: PortTypes.n2k, offset: Offset(190, 120)),
           ],
         ),
         DeviceTemplate(
@@ -178,13 +196,13 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 1.8,
           defaultVoltage: 11.8,
           ports: const [
-            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(30, 105)),
-            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(80, 105)),
-            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 40)),
-            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 70)),
-            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(190, 40)),
-            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(190, 70)),
-            PortTemplate(name: 'N2K Backbone', type: portTypeN2k, offset: Offset(160, 105)),
+            PortTemplate(name: 'Power +', type: PortTypes.powerPos, offset: Offset(30, 105)),
+            PortTemplate(name: 'Power -', type: PortTypes.powerNeg, offset: Offset(80, 105)),
+            PortTemplate(name: 'NMEA IN +', type: PortTypes.nmeaInPos, offset: Offset(10, 40)),
+            PortTemplate(name: 'NMEA IN -', type: PortTypes.nmeaInNeg, offset: Offset(10, 70)),
+            PortTemplate(name: 'NMEA OUT +', type: PortTypes.nmeaOutPos, offset: Offset(190, 40)),
+            PortTemplate(name: 'NMEA OUT -', type: PortTypes.nmeaOutNeg, offset: Offset(190, 70)),
+            PortTemplate(name: 'N2K Backbone', type: PortTypes.n2k, offset: Offset(160, 105)),
           ],
         ),
       ],
@@ -199,10 +217,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 1.5,
           defaultVoltage: 11.9,
           ports: const [
-            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(30, 120)),
-            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(80, 120)),
-            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 50)),
-            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 80)),
+            PortTemplate(name: 'Power +', type: PortTypes.powerPos, offset: Offset(30, 120)),
+            PortTemplate(name: 'Power -', type: PortTypes.powerNeg, offset: Offset(80, 120)),
+            PortTemplate(name: 'NMEA IN +', type: PortTypes.nmeaInPos, offset: Offset(10, 50)),
+            PortTemplate(name: 'NMEA IN -', type: PortTypes.nmeaInNeg, offset: Offset(10, 80)),
           ],
         ),
         DeviceTemplate(
@@ -215,12 +233,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 0.6,
           defaultVoltage: 11.6,
           ports: const [
-            PortTemplate(name: 'Power +', type: portTypePowerPositive, offset: Offset(20, 95)),
-            PortTemplate(name: 'Power -', type: portTypePowerNegative, offset: Offset(70, 95)),
-            PortTemplate(name: 'NMEA IN +', type: portTypeNmeaInPositive, offset: Offset(10, 30)),
-            PortTemplate(name: 'NMEA IN -', type: portTypeNmeaInNegative, offset: Offset(10, 60)),
-            PortTemplate(name: 'NMEA OUT +', type: portTypeNmeaOutPositive, offset: Offset(190, 30)),
-            PortTemplate(name: 'NMEA OUT -', type: portTypeNmeaOutNegative, offset: Offset(190, 60)),
+            PortTemplate(name: 'Power +', type: PortTypes.powerPos, offset: Offset(20, 95)),
+            PortTemplate(name: 'Power -', type: PortTypes.powerNeg, offset: Offset(70, 95)),
+            PortTemplate(name: 'NMEA IN +', type: PortTypes.nmeaInPos, offset: Offset(10, 30)),
+            PortTemplate(name: 'NMEA IN -', type: PortTypes.nmeaInNeg, offset: Offset(10, 60)),
+            PortTemplate(name: 'NMEA OUT +', type: PortTypes.nmeaOutPos, offset: Offset(190, 30)),
+            PortTemplate(name: 'NMEA OUT -', type: PortTypes.nmeaOutNeg, offset: Offset(190, 60)),
           ],
         ),
       ],
@@ -237,6 +255,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {
       _logs.insert(0, LogEntry(level: level, message: message, timestamp: DateTime.now()));
     });
+  }
+
+  void addLog(String message, {LogLevel level = LogLevel.info}) {
+    _addLog(level, message);
   }
 
   void _handleAddDevice(DeviceTemplate template) {
@@ -309,7 +331,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       return;
     }
 
-    if (!_arePortsCompatible(origin.port.type, target.port.type)) {
+    if (!portsAreCompatible(origin.port.type, target.port.type)) {
       _addLog(LogLevel.warn, 'Ports are not compatible.');
       setState(() {
         _selectedPortId = null;
@@ -331,7 +353,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     }
 
     setState(() {
-      _cables.add(CableModel(fromPortId: selectedPort, toPortId: portId));
+      final cableType = _preferredCableType(origin.port.type, target.port.type);
+      _cables.add(CableModel(fromPortId: selectedPort, toPortId: portId, type: cableType));
       _selectedPortId = null;
       _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
     });
@@ -348,19 +371,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     return _ResolvedPort(device: device, port: device.ports[index], portIndex: index);
   }
 
-  bool _arePortsCompatible(String a, String b) {
-    if (a == b) {
-      return a == portTypePowerPositive || a == portTypePowerNegative || a == portTypeN2k;
+  GlobalPortReference? findPortByGlobalId(String portId) {
+    final resolved = _resolvePortById(portId);
+    if (resolved == null) {
+      return null;
     }
-
-    final bool isPositivePair =
-        (a == portTypeNmeaOutPositive && b == portTypeNmeaInPositive) ||
-            (a == portTypeNmeaInPositive && b == portTypeNmeaOutPositive);
-    final bool isNegativePair =
-        (a == portTypeNmeaOutNegative && b == portTypeNmeaInNegative) ||
-            (a == portTypeNmeaInNegative && b == portTypeNmeaOutNegative);
-
-    return isPositivePair || isNegativePair;
+    return GlobalPortReference(
+      deviceId: resolved.device.id,
+      deviceName: resolved.device.name,
+      port: resolved.port,
+    );
   }
 
   void _handleNewProject() {
@@ -415,157 +435,98 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   void checkForShortCircuits() {
-    final Map<CableModel, String> shortMessages = {};
+    bool foundShort = false;
 
     for (final cable in _cables) {
-      final from = _resolvePortById(cable.fromPortId);
-      final to = _resolvePortById(cable.toPortId);
-      if (from == null || to == null) continue;
+      cable.isFault = false;
+    }
 
-      final bool connectsPowerPair =
-          (from.port.type == portTypePowerPositive && to.port.type == portTypePowerNegative) ||
-              (from.port.type == portTypePowerNegative && to.port.type == portTypePowerPositive);
-
-      if (!connectsPowerPair) {
+    for (final c in _cables) {
+      final p1 = findPortByGlobalId(c.fromPortId);
+      final p2 = findPortByGlobalId(c.toPortId);
+      if (p1 == null || p2 == null) {
         continue;
       }
 
-      final bool sameDevice = from.device.id == to.device.id;
-      final bool bothSources = _isPowerSourceDevice(from.device) && _isPowerSourceDevice(to.device);
+      final isShort =
+          (p1.type == PortTypes.powerPos && p2.type == PortTypes.powerNeg) ||
+              (p1.type == PortTypes.powerNeg && p2.type == PortTypes.powerPos);
 
-      if (sameDevice || bothSources) {
-        final descriptionA = '${from.device.name} ${from.port.name}';
-        final descriptionB = '${to.device.name} ${to.port.name}';
-        shortMessages[cable] = 'Short circuit detected between $descriptionA and $descriptionB. Check wiring.';
+      if (isShort) {
+        addLog('[ERROR] Short circuit detected between ${p1.name} and ${p2.name}', level: LogLevel.error);
+        c.isFault = true;
+        foundShort = true;
       }
     }
-
-    final shortSet = shortMessages.keys.toSet();
 
     setState(() {
-      _hasShortCircuit = shortSet.isNotEmpty;
-      for (final cable in _cables) {
-        cable.isShortCircuit = shortSet.contains(cable);
-      }
+      _hasShortCircuit = foundShort;
     });
-
-    for (final message in shortMessages.values) {
-      _addLog(LogLevel.error, message);
-    }
   }
 
   void runSimulation() {
-    final batteries = _devices.where(_isBatteryDevice).toList();
-    final List<DeviceModel> warnings = [];
+    final batteries = _devices.where((d) => d.category == 'Power').toList();
 
-    setState(() {
-      for (final device in _devices) {
-        device.voltageWarning = false;
-        if (device.nominalVoltage != null) {
-          device.actualVoltage = device.nominalVoltage;
-        } else {
-          device.actualVoltage = null;
-        }
-      }
-
-      for (final battery in batteries) {
-        battery.actualVoltage = battery.nominalVoltage;
-        for (final target in _devices) {
-          if (target.id == battery.id) continue;
-          final hasPositive = _hasDirectConnection(
-            battery.id,
-            portTypePowerPositive,
-            target.id,
-            portTypePowerPositive,
-          );
-          final hasNegative = _hasDirectConnection(
-            battery.id,
-            portTypePowerNegative,
-            target.id,
-            portTypePowerNegative,
-          );
-
-          if (hasPositive && hasNegative && battery.nominalVoltage != null) {
-            final supplyVoltage = (battery.nominalVoltage! - 0.2).clamp(0.0, battery.nominalVoltage!);
-            target.actualVoltage = supplyVoltage;
-          }
-        }
-      }
-
-      for (final device in _devices) {
-        final nominal = device.nominalVoltage;
-        final actual = device.actualVoltage;
-        if (nominal != null && actual != null && actual < nominal - 0.5) {
-          device.voltageWarning = true;
-          warnings.add(device);
-        }
-      }
-    });
-
-    if (batteries.isEmpty) {
-      _addLog(LogLevel.warn, 'No batteries available to power devices.');
+    for (final battery in batteries) {
+      battery.actualVoltage = battery.nominalVoltage;
+      battery.voltageWarning = false;
     }
 
-    for (final device in warnings) {
-      _addLog(
-        LogLevel.warn,
-        '[WARN] ${device.name} low voltage: ${device.actualVoltage?.toStringAsFixed(1) ?? 'N/A'} V',
-      );
+    for (final dev in _devices.where((d) => d.category != 'Power')) {
+      final hasPos = _cables.any((c) => isPowerConnectionToDevice(c, dev.id, true, batteries));
+      final hasNeg = _cables.any((c) => isPowerConnectionToDevice(c, dev.id, false, batteries));
+
+      if (hasPos && hasNeg && batteries.isNotEmpty) {
+        final batt = batteries.first;
+        final baseVoltage = batt.nominalVoltage ?? 0;
+        dev.actualVoltage = math.max(0, baseVoltage - 0.2);
+        dev.voltageWarning = false;
+      } else {
+        dev.actualVoltage = 0;
+        dev.voltageWarning = true;
+        addLog('[WARN] ${dev.name} without full power connection (+/-).', level: LogLevel.warn);
+      }
     }
 
-    _addLog(LogLevel.ok, 'Simulation completed.');
+    checkForShortCircuits();
+    setState(() {});
   }
 
-  bool _isBatteryDevice(DeviceModel device) {
-    if (device.category.toLowerCase() != 'power') {
+  bool isPowerConnectionToDevice(
+    CableModel cable,
+    String deviceId,
+    bool isPositive,
+    List<DeviceModel> batteries,
+  ) {
+    final from = findPortByGlobalId(cable.fromPortId);
+    final to = findPortByGlobalId(cable.toPortId);
+    if (from == null || to == null) {
       return false;
     }
-    if (device.currentDraw != null && device.currentDraw! < 0) {
-      return true;
-    }
-    return device.batteryCapacityAh != null;
-  }
 
-  bool _isPowerSourceDevice(DeviceModel device) {
-    if (device.category.toLowerCase() == 'power') {
-      return true;
-    }
-    if (device.currentDraw != null && device.currentDraw! < 0) {
-      return true;
-    }
-    return false;
-  }
+    final targetType = isPositive ? PortTypes.powerPos : PortTypes.powerNeg;
 
-  bool _hasDirectConnection(
-    String fromDeviceId,
-    String fromType,
-    String toDeviceId,
-    String toType,
-  ) {
-    for (final cable in _cables) {
-      final from = _resolvePortById(cable.fromPortId);
-      final to = _resolvePortById(cable.toPortId);
-      if (from == null || to == null) continue;
-      final bool matchesForward =
-          from.device.id == fromDeviceId && from.port.type == fromType && to.device.id == toDeviceId && to.port.type == toType;
-      final bool matchesBackward =
-          to.device.id == fromDeviceId && to.port.type == fromType && from.device.id == toDeviceId && from.port.type == toType;
-      if (matchesForward || matchesBackward) {
-        return true;
-      }
+    final deviceIsFrom = from.deviceId == deviceId;
+    final deviceIsTo = to.deviceId == deviceId;
+    if (!deviceIsFrom && !deviceIsTo) {
+      return false;
     }
-    return false;
+
+    final other = deviceIsFrom ? to : from;
+    final isBattery = batteries.any((b) => b.id == other.deviceId);
+
+    return other.type == targetType && isBattery;
   }
 
   String _preferredCableType(String a, String b) {
     if (a == b) return a;
-    if ({portTypeNmeaOutPositive, portTypeNmeaInPositive}.contains(a) &&
-        {portTypeNmeaOutPositive, portTypeNmeaInPositive}.contains(b)) {
-      return portTypeNmeaOutPositive;
+    if ({PortTypes.nmeaOutPos, PortTypes.nmeaInPos}.contains(a) &&
+        {PortTypes.nmeaOutPos, PortTypes.nmeaInPos}.contains(b)) {
+      return PortTypes.nmeaOutPos;
     }
-    if ({portTypeNmeaOutNegative, portTypeNmeaInNegative}.contains(a) &&
-        {portTypeNmeaOutNegative, portTypeNmeaInNegative}.contains(b)) {
-      return portTypeNmeaOutNegative;
+    if ({PortTypes.nmeaOutNeg, PortTypes.nmeaInNeg}.contains(a) &&
+        {PortTypes.nmeaOutNeg, PortTypes.nmeaInNeg}.contains(b)) {
+      return PortTypes.nmeaOutNeg;
     }
     return a;
   }
@@ -698,9 +659,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       if (from == null || to == null) continue;
       final fromOffset = from.device.position + from.port.offset;
       final toOffset = to.device.position + to.port.offset;
-      final cableType = _preferredCableType(from.port.type, to.port.type);
-      final isShort = cable.isShortCircuit;
-      final cableColor = isShort ? const Color(0xFFFF3B30) : colorForCable(cableType);
+      final isShort = cable.isFault;
+      final cableColor = cable.isFault ? Colors.redAccent : colorForCable(cable.type);
       final strokeWidth = isShort ? 5.0 : 3.0;
       yield CustomPaint(
         painter: _CablePainter(
@@ -1091,12 +1051,14 @@ class CableModel {
   CableModel({
     required this.fromPortId,
     required this.toPortId,
-    this.isShortCircuit = false,
+    required this.type,
+    this.isFault = false,
   });
 
   final String fromPortId;
   final String toPortId;
-  bool isShortCircuit;
+  final String type;
+  bool isFault;
 }
 
 class PositionedPort extends StatelessWidget {
@@ -1112,9 +1074,6 @@ class PositionedPort extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = colorForPort(port.type);
-    final fillColor = isSelected ? baseColor : baseColor.withOpacity(0.9);
-    final borderColor = isSelected ? Colors.white : Colors.white24;
     return Positioned(
       left: port.offset.dx - 7,
       top: port.offset.dy - 7,
@@ -1126,17 +1085,27 @@ class PositionedPort extends StatelessWidget {
           waitDuration: const Duration(milliseconds: 300),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: fillColor,
-              border: Border.all(color: borderColor, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isSelected ? 0.6 : 0.45),
-                  blurRadius: isSelected ? 6 : 4,
-                  offset: const Offset(0, 2),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isSelected)
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white60, width: 1),
+                    ),
+                  ),
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: colorForPort(port.type),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24, width: 1),
+                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
+                  ),
                 ),
               ],
             ),
@@ -1153,6 +1122,21 @@ class _ResolvedPort {
   final DeviceModel device;
   final PortModel port;
   final int portIndex;
+}
+
+class GlobalPortReference {
+  GlobalPortReference({
+    required this.deviceId,
+    required this.deviceName,
+    required this.port,
+  });
+
+  final String deviceId;
+  final String deviceName;
+  final PortModel port;
+
+  String get name => '$deviceName ${port.name}';
+  String get type => port.type;
 }
 
 class _GridPainter extends CustomPainter {
@@ -1283,19 +1267,19 @@ extension DeviceCategoryX on DeviceCategory {
 
 String portTypeLabel(String type) {
   switch (type) {
-    case portTypePowerPositive:
+    case PortTypes.powerPos:
       return 'Power +';
-    case portTypePowerNegative:
+    case PortTypes.powerNeg:
       return 'Power -';
-    case portTypeNmeaOutPositive:
+    case PortTypes.nmeaOutPos:
       return 'NMEA OUT +';
-    case portTypeNmeaOutNegative:
+    case PortTypes.nmeaOutNeg:
       return 'NMEA OUT -';
-    case portTypeNmeaInPositive:
+    case PortTypes.nmeaInPos:
       return 'NMEA IN +';
-    case portTypeNmeaInNegative:
+    case PortTypes.nmeaInNeg:
       return 'NMEA IN -';
-    case portTypeN2k:
+    case PortTypes.n2k:
       return 'N2K';
     default:
       return type;
