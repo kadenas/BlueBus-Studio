@@ -110,8 +110,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   final List<CableModel> _cables = [];
   final List<LogEntry> _logs = [];
 
-  String? _selectedDeviceId;
-  String? _selectedPortId;
+  DeviceModel? _selectedDevice;
+  PortModel? _selectedPort;
+
+  final TransformationController _transformController = TransformationController();
 
   _ResolvedPort? _tempStartPort;
   Offset? _tempCurrentPosition;
@@ -420,6 +422,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     _addLog(LogLevel.info, 'Welcome to BlueBus Studio. Tap New to start a fresh project.');
   }
 
+  @override
+  void dispose() {
+    _transformController.dispose();
+    super.dispose();
+  }
+
   void _addLog(LogLevel level, String message) {
     setState(() {
       _logs.insert(0, LogEntry(level: level, message: message, timestamp: DateTime.now()));
@@ -459,14 +467,17 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         defaultVoltage: template.defaultVoltage,
       );
       _devices.add(device);
-      _selectedDeviceId = id;
+      _selectedDevice = device;
+      _selectedPort = null;
       _addLog(LogLevel.info, 'Added ${template.catalogName}.');
     });
   }
 
   void _handleSelectDevice(String deviceId) {
+    final device = _devices.firstWhere((d) => d.id == deviceId);
     setState(() {
-      _selectedDeviceId = deviceId;
+      _selectedDevice = device;
+      _selectedPort = null;
     });
   }
 
@@ -483,7 +494,58 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   void onPortTap(DeviceModel device, PortModel port) {
-    _handlePortTap(port);
+    final portId = port.globalId;
+
+    if (_tempStartPort != null && _tempStartPort!.port.globalId != portId) {
+      final target = _resolvePortById(portId);
+      if (target != null) {
+        _tryFinishTempConnection(target);
+      }
+      return;
+    }
+
+    if (_selectedPort == null) {
+      setState(() {
+        _selectedPort = port;
+      });
+      return;
+    }
+
+    if (_selectedPort!.globalId == portId) {
+      setState(() {
+        _selectedPort = null;
+      });
+      return;
+    }
+
+    final origin = _resolvePortById(_selectedPort!.globalId);
+    final target = _resolvePortById(portId);
+
+    if (origin == null || target == null) {
+      setState(() {
+        _selectedPort = null;
+      });
+      return;
+    }
+
+    if (!portsAreCompatible(origin.port.type, target.port.type)) {
+      addLog('[WARN] incompatible: "${origin.port.type}" vs "${target.port.type}"', level: LogLevel.warn);
+      setState(() {
+        _selectedPort = null;
+      });
+      return;
+    }
+
+    final connected = _attemptConnection(origin, target);
+    if (connected) {
+      checkForShortCircuits();
+    }
+  }
+
+  void selectPortFromPanel(PortModel port) {
+    setState(() {
+      _selectedPort = port;
+    });
   }
 
   void onPortDragStart(DeviceModel device, PortModel port, Offset globalPosition) {
@@ -524,51 +586,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {});
   }
 
-  void _handlePortTap(PortModel port) {
-    final portId = port.globalId;
-    final selectedPort = _selectedPortId;
-
-    if (_tempStartPort != null && _tempStartPort!.port.globalId != portId) {
-      final target = _resolvePortById(portId);
-      if (target != null) {
-        _tryFinishTempConnection(target);
-      }
-      return;
-    }
-
-    if (selectedPort == null) {
-      setState(() {
-        _selectedPortId = portId;
-      });
-      return;
-    }
-
-    if (selectedPort == portId) {
-      setState(() {
-        _selectedPortId = null;
-      });
-      return;
-    }
-
-    final origin = _resolvePortById(selectedPort);
-    final target = _resolvePortById(portId);
-
-    if (origin == null || target == null) {
-      setState(() {
-        _selectedPortId = null;
-      });
-      return;
-    }
-
-    if (_attemptConnection(origin, target)) {
-      checkForShortCircuits();
-    }
-  }
-
   bool _attemptConnection(_ResolvedPort origin, _ResolvedPort target) {
     if (origin.port.globalId == target.port.globalId) {
       setState(() {
-        _selectedPortId = null;
+        _selectedPort = null;
       });
       return false;
     }
@@ -580,10 +601,9 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     final targetType = target.port.type.trim();
 
     if (!portsAreCompatible(originType, targetType)) {
-      addLog('[DEBUG] incompatible: "$originType" vs "$targetType"');
-      addLog('[WARN] Incompatible ports: "$originType" vs "$targetType"', level: LogLevel.warn);
+      addLog('[WARN] incompatible: "$originType" vs "$targetType"', level: LogLevel.warn);
       setState(() {
-        _selectedPortId = null;
+        _selectedPort = null;
       });
       return false;
     }
@@ -596,7 +616,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     if (exists) {
       addLog('These ports are already connected.', level: LogLevel.warn);
       setState(() {
-        _selectedPortId = null;
+        _selectedPort = null;
       });
       return false;
     }
@@ -604,7 +624,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     setState(() {
       final cableType = _preferredCableType(originType, targetType);
       _cables.add(CableModel(fromPortId: fromId, toPortId: toId, type: cableType));
-      _selectedPortId = null;
+      _selectedPort = null;
     });
     _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
     return true;
@@ -681,11 +701,12 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       _devices.clear();
       _cables.clear();
       _logs.clear();
-      _selectedDeviceId = null;
-      _selectedPortId = null;
+      _selectedDevice = null;
+      _selectedPort = null;
       _simulationRunning = false;
       _hasShortCircuit = false;
     });
+    _transformController.value = Matrix4.identity();
     _addLog(LogLevel.info, 'Started a new project.');
   }
 
@@ -706,6 +727,24 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       }
     });
     _addLog(LogLevel.info, 'Simulation stopped.');
+  }
+
+  void deleteSelectedDevice() {
+    if (_selectedDevice == null) return;
+
+    final deviceId = _selectedDevice!.id;
+    final portIds = _selectedDevice!.ports.map((p) => p.globalId).toSet();
+
+    setState(() {
+      _devices.removeWhere((d) => d.id == deviceId);
+      _cables.removeWhere(
+        (c) => portIds.contains(c.fromPortId) || portIds.contains(c.toPortId),
+      );
+      _selectedDevice = null;
+      _selectedPort = null;
+    });
+
+    addLog('[INFO] Device removed from canvas.');
   }
 
   Future<void> _handleRunSimulation() async {
@@ -936,6 +975,27 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           _TopBarButton(label: 'Play', icon: Icons.play_arrow, onTap: _handleRunSimulation),
           const SizedBox(width: 12),
           _TopBarButton(label: 'Stop', icon: Icons.stop, onTap: _handleStopSimulation),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.clear),
+            tooltip: 'Delete selected device',
+            onPressed: deleteSelectedDevice,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.zoom_out),
+            tooltip: 'Zoom out',
+            onPressed: () {
+              _transformController.value = _transformController.value.scaled(0.9);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.zoom_in),
+            tooltip: 'Zoom in',
+            onPressed: () {
+              _transformController.value = _transformController.value.scaled(1.1);
+            },
+          ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -995,22 +1055,31 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
           return ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              key: _canvasKey,
-              children: [
-                CustomPaint(size: size, painter: _GridPainter()),
-                ..._buildCables(),
-                if (_tempStartPort != null && _tempCurrentPosition != null)
-                  CustomPaint(
-                    painter: _TempCablePainter(
-                      start: _getPortCenter(_tempStartPort!),
-                      end: _tempCurrentPosition!,
-                      color: colorForPort(_tempStartPort!.port.type),
-                    ),
-                    size: Size.infinite,
-                  ),
-                ..._devices.map((device) => _buildDeviceWidget(device, size)),
-              ],
+            child: InteractiveViewer(
+              transformationController: _transformController,
+              minScale: 0.5,
+              maxScale: 2.5,
+              child: SizedBox(
+                width: size.width,
+                height: size.height,
+                child: Stack(
+                  key: _canvasKey,
+                  children: [
+                    CustomPaint(size: size, painter: _GridPainter()),
+                    ..._buildCables(),
+                    if (_tempStartPort != null && _tempCurrentPosition != null)
+                      CustomPaint(
+                        painter: _TempCablePainter(
+                          start: _getPortCenter(_tempStartPort!),
+                          end: _tempCurrentPosition!,
+                          color: colorForPort(_tempStartPort!.port.type),
+                        ),
+                        size: Size.infinite,
+                      ),
+                    ..._devices.map((device) => _buildDeviceWidget(device, size)),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -1041,7 +1110,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   Widget _buildDeviceWidget(DeviceModel device, Size canvasSize) {
-    final isSelected = _selectedDeviceId == device.id;
+    final isSelected = _selectedDevice?.id == device.id;
     final borderColor = device.voltageWarning ? Colors.redAccent : (isSelected ? Theme.of(context).colorScheme.primary : Colors.white24);
     return Positioned(
       left: device.position.dx,
@@ -1076,7 +1145,15 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.memory, size: 18, color: Theme.of(context).colorScheme.primary),
+                        Icon(
+                          device.category == 'Power'
+                              ? Icons.battery_full
+                              : device.category == 'Navigation'
+                                  ? Icons.navigation
+                                  : Icons.memory,
+                          size: 14,
+                          color: Colors.cyanAccent,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -1102,7 +1179,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   Widget buildPortWidget(DeviceModel device, PortModel port) {
-    final isSelected = _selectedPortId == port.globalId;
+    final isSelected = _selectedPort?.globalId == port.globalId;
     return Positioned(
       left: port.offset.dx - 7,
       top: port.offset.dy - 7,
@@ -1118,29 +1195,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           waitDuration: const Duration(milliseconds: 300),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (isSelected)
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white60, width: 1),
-                    ),
-                  ),
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: colorForPort(port.type),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white24, width: 1),
-                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
-                  ),
-                ),
-              ],
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: colorForPort(port.type),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? Colors.cyanAccent : Colors.white24,
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
             ),
           ),
         ),
@@ -1149,10 +1213,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   Widget _buildPropertiesPanel(ColorScheme colorScheme) {
-    final selected = _devices
-        .where((d) => d.id == _selectedDeviceId)
-        .cast<DeviceModel?>()
-        .firstWhere((d) => d != null, orElse: () => null);
+    final selected = _selectedDevice != null &&
+            _devices.any((device) => device.id == _selectedDevice!.id)
+        ? _selectedDevice
+        : null;
     return Container(
       padding: const EdgeInsets.all(16),
       color: colorScheme.surface,
@@ -1214,24 +1278,33 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                       ...device.ports.map(
                         (port) {
                           final portColor = colorForPort(port.type);
-                          return Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(color: portColor, shape: BoxShape.circle),
+                          final isSelectedPort = _selectedPort?.globalId == port.globalId;
+                          return GestureDetector(
+                            onTap: () => selectPortFromPanel(port),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelectedPort ? Colors.cyanAccent : Colors.transparent,
+                                  width: isSelectedPort ? 1.5 : 1,
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(port.name)),
-                                Text(portTypeLabel(port.type), style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                              ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(color: portColor, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(port.name)),
+                                  Text(portTypeLabel(port.type), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              ),
                             ),
                           );
                         },
