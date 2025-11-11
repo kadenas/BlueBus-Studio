@@ -11,24 +11,24 @@ class PortTypes {
   static const nmeaOutNeg = 'NMEA_OUT_NEG';
 }
 
-Color colorForPortType(String type) {
+Color colorForPort(String type) {
   switch (type) {
     case PortTypes.powerPos:
-      return Colors.red;
+      return const Color(0xFFFF3B30);
     case PortTypes.powerNeg:
-      return Colors.black;
+      return const Color(0xFF000000);
     case PortTypes.nmeaInPos:
     case PortTypes.nmeaOutPos:
-      return Colors.green;
+      return const Color(0xFF30C97A);
     case PortTypes.nmeaInNeg:
     case PortTypes.nmeaOutNeg:
-      return Colors.yellow;
+      return const Color(0xFFE6C229);
     default:
       return Colors.white;
   }
 }
 
-Color colorForCable(String type) => colorForPortType(type);
+Color colorForCable(String type) => colorForPort(type);
 
 bool portsAreCompatible(String a, String b) {
   if ((a == PortTypes.nmeaOutPos && b == PortTypes.nmeaInPos) ||
@@ -105,7 +105,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
 
   final TransformationController _transformController = TransformationController();
 
-  _ResolvedPort? _tempStartPort;
+  PortModel? _tempStartPort;
   Offset? _tempCurrentPosition;
 
   final GlobalKey _canvasKey = GlobalKey();
@@ -131,14 +131,14 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           socPercent: 100,
           defaultVoltage: 12.6,
           blueprintId: 'battery-12v',
-          ports: const [
+          ports: [
             PortTemplate(
               id: 'battery-12v-pos',
               name: 'Power +',
               type: PortTypes.powerPos,
               group: 'Power',
               side: 'bottom',
-              color: Colors.red,
+              color: colorForPort(PortTypes.powerPos),
             ),
             PortTemplate(
               id: 'battery-12v-neg',
@@ -146,7 +146,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.powerNeg,
               group: 'Power',
               side: 'bottom',
-              color: Colors.black,
+              color: colorForPort(PortTypes.powerNeg),
             ),
           ],
         ),
@@ -162,14 +162,14 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 0.3,
           defaultVoltage: 12.0,
           blueprintId: 'gps-0183',
-          ports: const [
+          ports: [
             PortTemplate(
               id: 'gps-power-pos',
               name: 'Power +',
               type: PortTypes.powerPos,
               group: 'Power',
               side: 'bottom',
-              color: Colors.red,
+              color: colorForPort(PortTypes.powerPos),
             ),
             PortTemplate(
               id: 'gps-power-neg',
@@ -177,7 +177,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.powerNeg,
               group: 'Power',
               side: 'bottom',
-              color: Colors.black,
+              color: colorForPort(PortTypes.powerNeg),
             ),
             PortTemplate(
               id: 'gps-nmea-out-pos',
@@ -185,7 +185,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaOutPos,
               group: 'OUT',
               side: 'right',
-              color: Colors.green,
+              color: colorForPort(PortTypes.nmeaOutPos),
             ),
             PortTemplate(
               id: 'gps-nmea-out-neg',
@@ -193,7 +193,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaOutNeg,
               group: 'OUT',
               side: 'right',
-              color: Colors.yellow,
+              color: colorForPort(PortTypes.nmeaOutNeg),
             ),
           ],
         ),
@@ -207,14 +207,14 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 2.5,
           defaultVoltage: 12.0,
           blueprintId: 'plotter-0183',
-          ports: const [
+          ports: [
             PortTemplate(
               id: 'plotter-power-pos',
               name: 'Power +',
               type: PortTypes.powerPos,
               group: 'Power',
               side: 'bottom',
-              color: Colors.red,
+              color: colorForPort(PortTypes.powerPos),
             ),
             PortTemplate(
               id: 'plotter-power-neg',
@@ -222,7 +222,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.powerNeg,
               group: 'Power',
               side: 'bottom',
-              color: Colors.black,
+              color: colorForPort(PortTypes.powerNeg),
             ),
             PortTemplate(
               id: 'plotter-nmea-in-pos',
@@ -230,7 +230,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaInPos,
               group: 'IN',
               side: 'left',
-              color: Colors.green,
+              color: colorForPort(PortTypes.nmeaInPos),
             ),
             PortTemplate(
               id: 'plotter-nmea-in-neg',
@@ -238,7 +238,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaInNeg,
               group: 'IN',
               side: 'left',
-              color: Colors.yellow,
+              color: colorForPort(PortTypes.nmeaInNeg),
             ),
             PortTemplate(
               id: 'plotter-nmea-out-pos',
@@ -246,7 +246,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaOutPos,
               group: 'OUT',
               side: 'right',
-              color: Colors.green,
+              color: colorForPort(PortTypes.nmeaOutPos),
             ),
             PortTemplate(
               id: 'plotter-nmea-out-neg',
@@ -254,7 +254,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaOutNeg,
               group: 'OUT',
               side: 'right',
-              color: Colors.yellow,
+              color: colorForPort(PortTypes.nmeaOutNeg),
             ),
           ],
         ),
@@ -270,14 +270,14 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           currentDraw: 1.5,
           defaultVoltage: 12.0,
           blueprintId: 'vhf-dsc',
-          ports: const [
+          ports: [
             PortTemplate(
               id: 'vhf-power-pos',
               name: 'Power +',
               type: PortTypes.powerPos,
               group: 'Power',
               side: 'bottom',
-              color: Colors.red,
+              color: colorForPort(PortTypes.powerPos),
             ),
             PortTemplate(
               id: 'vhf-power-neg',
@@ -285,7 +285,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.powerNeg,
               group: 'Power',
               side: 'bottom',
-              color: Colors.black,
+              color: colorForPort(PortTypes.powerNeg),
             ),
             PortTemplate(
               id: 'vhf-nmea-in-pos',
@@ -293,7 +293,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaInPos,
               group: 'IN',
               side: 'left',
-              color: Colors.green,
+              color: colorForPort(PortTypes.nmeaInPos),
             ),
             PortTemplate(
               id: 'vhf-nmea-in-neg',
@@ -301,7 +301,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               type: PortTypes.nmeaInNeg,
               group: 'IN',
               side: 'left',
-              color: Colors.yellow,
+              color: colorForPort(PortTypes.nmeaInNeg),
             ),
           ],
         ),
@@ -465,11 +465,25 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   void onPortTap(DeviceModel device, PortModel port) {
     final portId = port.globalId;
 
-    if (_tempStartPort != null && _tempStartPort!.port.globalId != portId) {
-      final target = _resolvePortById(portId);
-      if (target != null) {
-        _tryFinishTempConnection(target);
+    if (_tempStartPort != null) {
+      final startId = _tempStartPort!.globalId;
+      if (startId != portId) {
+        final origin = _resolvePortById(startId);
+        final target = _resolvePortById(portId);
+        if (origin != null && target != null) {
+          if (!portsAreCompatible(origin.port.type, target.port.type)) {
+            addLog('[WARN] incompatible: "${origin.port.type}" vs "${target.port.type}"', level: LogLevel.warn);
+          } else {
+            final connected = _attemptConnection(origin, target);
+            if (connected) {
+              checkForShortCircuits();
+            }
+          }
+        }
       }
+      _tempStartPort = null;
+      _tempCurrentPosition = null;
+      setState(() {});
       return;
     }
 
@@ -517,37 +531,43 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     });
   }
 
-  void onPortDragStart(DeviceModel device, PortModel port, Offset globalPosition) {
-    final resolved = _resolvePortById(port.globalId);
-    if (resolved == null) return;
-    _tempStartPort = resolved;
-    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox != null) {
-      _tempCurrentPosition = renderBox.globalToLocal(globalPosition);
-    } else {
-      _tempCurrentPosition = _getPortCenter(resolved);
-    }
+  void onPortDragStart(DeviceModel device, PortModel port, DragStartDetails details) {
+    _tempStartPort = port;
+    _tempCurrentPosition = _globalToCanvas(details.globalPosition) ?? _getPortCenterForPort(port);
     setState(() {});
   }
 
-  void onPortDragUpdate(Offset globalPosition) {
+  void onPortDragUpdate(DragUpdateDetails details) {
     if (_tempStartPort == null) return;
-    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    _tempCurrentPosition = renderBox.globalToLocal(globalPosition);
+    final position = _globalToCanvas(details.globalPosition);
+    if (position == null) return;
+    _tempCurrentPosition = position;
     setState(() {});
   }
 
   void onPortDragEnd() {
-    if (_tempStartPort != null && _tempCurrentPosition != null) {
-      final target = _findPortAtPosition(
-        _tempCurrentPosition!,
-        excludeGlobalId: _tempStartPort!.port.globalId,
-      );
-      if (target != null) {
-        _tryFinishTempConnection(target);
-        return;
+    if (_tempStartPort == null || _tempCurrentPosition == null) {
+      _tempStartPort = null;
+      _tempCurrentPosition = null;
+      setState(() {});
+      return;
+    }
+
+    final startPort = _tempStartPort!;
+    final startId = startPort.globalId;
+    final nearest = _findNearestPort(_tempCurrentPosition!, excludeGlobalId: startId);
+
+    if (nearest != null &&
+        _distanceToPort(nearest, _tempCurrentPosition!) < 25 &&
+        portsAreCompatible(startPort.type, nearest.port.type)) {
+      final origin = _resolvePortById(startId);
+      if (origin != null) {
+        if (_attemptConnection(origin, nearest)) {
+          checkForShortCircuits();
+        }
       }
+    } else {
+      addLog('[WARN] drop without valid target', level: LogLevel.warn);
     }
 
     _tempStartPort = null;
@@ -599,18 +619,9 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     return true;
   }
 
-  void _tryFinishTempConnection(_ResolvedPort targetPort) {
-    if (_tempStartPort == null) return;
-    final start = _tempStartPort!;
-    if (_attemptConnection(start, targetPort)) {
-      checkForShortCircuits();
-    }
-    _tempStartPort = null;
-    _tempCurrentPosition = null;
-    setState(() {});
-  }
-
-  static const double _portRadius = 7;
+  static const double _portHitSize = 30;
+  static const double _portCircleSize = 14;
+  static const double _portOutsideOffset = 8;
 
   Offset _portOffset(DeviceModel device, PortModel port) {
     const double verticalPadding = 36;
@@ -660,6 +671,21 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         break;
     }
 
+    switch (port.side) {
+      case 'left':
+        x -= _portOutsideOffset;
+        break;
+      case 'right':
+        x += _portOutsideOffset;
+        break;
+      case 'bottom':
+        y += _portOutsideOffset;
+        break;
+      case 'top':
+        y -= _portOutsideOffset;
+        break;
+    }
+
     return Offset(x, y);
   }
 
@@ -667,7 +693,25 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     return resolved.device.position + _portOffset(resolved.device, resolved.port);
   }
 
-  _ResolvedPort? _findPortAtPosition(Offset position, {String? excludeGlobalId}) {
+  Offset? _getPortCenterForPort(PortModel port) {
+    for (final device in _devices) {
+      if (device.id == port.deviceId) {
+        return device.position + _portOffset(device, port);
+      }
+    }
+    return null;
+  }
+
+  Offset? _globalToCanvas(Offset globalPosition) {
+    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return null;
+    return renderBox.globalToLocal(globalPosition);
+  }
+
+  _ResolvedPort? _findNearestPort(Offset point, {String? excludeGlobalId}) {
+    _ResolvedPort? best;
+    double bestDistance = double.infinity;
+
     for (final device in _devices) {
       for (var i = 0; i < device.ports.length; i++) {
         final port = device.ports[i];
@@ -675,13 +719,20 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           continue;
         }
         final center = device.position + _portOffset(device, port);
-        final hitBox = Rect.fromCenter(center: center, width: 24, height: 24);
-        if (hitBox.contains(position)) {
-          return _ResolvedPort(device: device, port: port, portIndex: i);
+        final distance = (center - point).distance;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = _ResolvedPort(device: device, port: port, portIndex: i);
         }
       }
     }
-    return null;
+
+    return best;
+  }
+
+  double _distanceToPort(_ResolvedPort port, Offset point) {
+    final center = _getPortCenter(port);
+    return (center - point).distance;
   }
 
   _ResolvedPort? _resolvePortById(String portId) {
@@ -1090,15 +1141,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                 height: size.height,
                 child: Stack(
                   key: _canvasKey,
+                  clipBehavior: Clip.none,
                   children: [
                     CustomPaint(size: size, painter: _GridPainter()),
                     ..._buildCables(),
                     if (_tempStartPort != null && _tempCurrentPosition != null)
                       CustomPaint(
                         painter: _TempCablePainter(
-                          start: _getPortCenter(_tempStartPort!),
+                          start: _getPortCenterForPort(_tempStartPort!) ?? _tempCurrentPosition!,
                           end: _tempCurrentPosition!,
-                          color: _tempStartPort!.port.color,
+                          color: colorForPort(_tempStartPort!.type),
                         ),
                         size: Size.infinite,
                       ),
@@ -1238,32 +1290,61 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
 
   Widget buildPortWidget(DeviceModel device, PortModel port) {
     final isSelected = _selectedPort?.globalId == port.globalId;
-    final offset = _portOffset(device, port);
+    final center = _portOffset(device, port);
+    final left = center.dx - _portHitSize / 2;
+    final top = center.dy - _portHitSize / 2;
+
+    Alignment alignment;
+    switch (port.side) {
+      case 'left':
+        alignment = Alignment.centerLeft;
+        break;
+      case 'right':
+        alignment = Alignment.centerRight;
+        break;
+      case 'bottom':
+        alignment = Alignment.bottomCenter;
+        break;
+      case 'top':
+        alignment = Alignment.topCenter;
+        break;
+      default:
+        alignment = Alignment.center;
+        break;
+    }
+
+    final borderColor = isSelected ? Colors.cyanAccent : Colors.white24;
+    final borderWidth = isSelected ? 2.0 : 1.0;
+
     return Positioned(
-      left: offset.dx - _portRadius,
-      top: offset.dy - _portRadius,
+      left: left,
+      top: top,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => onPortTap(device, port),
-        onPanStart: (details) => onPortDragStart(device, port, details.globalPosition),
-        onPanUpdate: (details) => onPortDragUpdate(details.globalPosition),
+        onPanStart: (details) => onPortDragStart(device, port, details),
+        onPanUpdate: (details) => onPortDragUpdate(details),
         onPanEnd: (_) => onPortDragEnd(),
         onPanCancel: onPortDragEnd,
-        child: Tooltip(
-          message: port.name,
-          waitDuration: const Duration(milliseconds: 300),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: _portRadius * 2,
-            height: _portRadius * 2,
-            decoration: BoxDecoration(
-              color: port.color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? Colors.white : Colors.white30,
-                width: isSelected ? 2 : 1,
+        child: SizedBox(
+          width: _portHitSize,
+          height: _portHitSize,
+          child: Tooltip(
+            message: port.name,
+            waitDuration: const Duration(milliseconds: 300),
+            child: Align(
+              alignment: alignment,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: _portCircleSize,
+                height: _portCircleSize,
+                decoration: BoxDecoration(
+                  color: colorForPort(port.type),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: borderColor, width: borderWidth),
+                  boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
+                ),
               ),
-              boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
             ),
           ),
         ),
@@ -1683,7 +1764,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerPos,
         group: 'Power',
         side: 'bottom',
-        color: Colors.red,
+        color: colorForPort(PortTypes.powerPos),
       ),
       PortModel(
         id: 'gps-power-neg',
@@ -1692,7 +1773,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerNeg,
         group: 'Power',
         side: 'bottom',
-        color: Colors.black,
+        color: colorForPort(PortTypes.powerNeg),
       ),
       PortModel(
         id: 'gps-nmea-out-pos',
@@ -1701,7 +1782,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaOutPos,
         group: 'OUT',
         side: 'right',
-        color: Colors.green,
+        color: colorForPort(PortTypes.nmeaOutPos),
       ),
       PortModel(
         id: 'gps-nmea-out-neg',
@@ -1710,7 +1791,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaOutNeg,
         group: 'OUT',
         side: 'right',
-        color: Colors.yellow,
+        color: colorForPort(PortTypes.nmeaOutNeg),
       ),
     ],
   ),
@@ -1733,7 +1814,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerPos,
         group: 'Power',
         side: 'bottom',
-        color: Colors.red,
+        color: colorForPort(PortTypes.powerPos),
       ),
       PortModel(
         id: 'plotter-power-neg',
@@ -1742,7 +1823,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerNeg,
         group: 'Power',
         side: 'bottom',
-        color: Colors.black,
+        color: colorForPort(PortTypes.powerNeg),
       ),
       PortModel(
         id: 'plotter-nmea-in-pos',
@@ -1751,7 +1832,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaInPos,
         group: 'IN',
         side: 'left',
-        color: Colors.green,
+        color: colorForPort(PortTypes.nmeaInPos),
       ),
       PortModel(
         id: 'plotter-nmea-in-neg',
@@ -1760,7 +1841,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaInNeg,
         group: 'IN',
         side: 'left',
-        color: Colors.yellow,
+        color: colorForPort(PortTypes.nmeaInNeg),
       ),
       PortModel(
         id: 'plotter-nmea-out-pos',
@@ -1769,7 +1850,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaOutPos,
         group: 'OUT',
         side: 'right',
-        color: Colors.green,
+        color: colorForPort(PortTypes.nmeaOutPos),
       ),
       PortModel(
         id: 'plotter-nmea-out-neg',
@@ -1778,7 +1859,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaOutNeg,
         group: 'OUT',
         side: 'right',
-        color: Colors.yellow,
+        color: colorForPort(PortTypes.nmeaOutNeg),
       ),
     ],
   ),
@@ -1801,7 +1882,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerPos,
         group: 'Power',
         side: 'bottom',
-        color: Colors.red,
+        color: colorForPort(PortTypes.powerPos),
       ),
       PortModel(
         id: 'vhf-power-neg',
@@ -1810,7 +1891,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.powerNeg,
         group: 'Power',
         side: 'bottom',
-        color: Colors.black,
+        color: colorForPort(PortTypes.powerNeg),
       ),
       PortModel(
         id: 'vhf-nmea-in-pos',
@@ -1819,7 +1900,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaInPos,
         group: 'IN',
         side: 'left',
-        color: Colors.green,
+        color: colorForPort(PortTypes.nmeaInPos),
       ),
       PortModel(
         id: 'vhf-nmea-in-neg',
@@ -1828,7 +1909,7 @@ final List<DeviceModel> nmeaDevices = [
         type: PortTypes.nmeaInNeg,
         group: 'IN',
         side: 'left',
-        color: Colors.yellow,
+        color: colorForPort(PortTypes.nmeaInNeg),
       ),
     ],
   ),
