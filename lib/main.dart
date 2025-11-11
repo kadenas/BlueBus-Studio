@@ -2,6 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+const double kDeviceWidth = 210;
+const double kDeviceHeight = 120;
+const Size kDeviceSize = Size(kDeviceWidth, kDeviceHeight);
+const double kPortVisualSize = 14;
+
 class PortTypes {
   static const powerPos = 'POWER_POS';
   static const powerNeg = 'POWER_NEG';
@@ -173,7 +178,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           manufacturer: 'BlueBus Energy',
           model: 'AGM 12V 100Ah',
           category: DeviceCategory.power,
-          size: const Size(200, 120),
+          size: kDeviceSize,
           nominalVoltage: 12.6,
           currentDraw: -5,
           capacityAh: 100,
@@ -188,6 +193,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerPos),
+              offset: const Offset(85, 0),
             ),
             PortTemplate(
               id: 'battery-12v-neg',
@@ -196,6 +202,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerNeg),
+              offset: const Offset(125, 0),
             ),
           ],
         ),
@@ -206,7 +213,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           manufacturer: 'Garmin',
           model: 'GPS 19x',
           category: DeviceCategory.navigation,
-          size: const Size(200, 140),
+          size: kDeviceSize,
           nominalVoltage: 12.0,
           currentDraw: 0.3,
           defaultVoltage: 12.0,
@@ -219,6 +226,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerPos),
+              offset: const Offset(85, 0),
             ),
             PortTemplate(
               id: 'gps-power-neg',
@@ -227,6 +235,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerNeg),
+              offset: const Offset(125, 0),
             ),
             PortTemplate(
               id: 'gps-nmea-out-pos',
@@ -235,6 +244,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'OUT',
               side: 'right',
               color: colorForPort(PortTypes.nmeaOutPos),
+              offset: const Offset(0, 36),
             ),
             PortTemplate(
               id: 'gps-nmea-out-neg',
@@ -243,6 +253,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'OUT',
               side: 'right',
               color: colorForPort(PortTypes.nmeaOutNeg),
+              offset: const Offset(0, 72),
             ),
           ],
         ),
@@ -251,7 +262,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           manufacturer: 'Raymarine',
           model: 'Axiom 7',
           category: DeviceCategory.navigation,
-          size: const Size(240, 160),
+          size: kDeviceSize,
           nominalVoltage: 12.0,
           currentDraw: 2.5,
           defaultVoltage: 12.0,
@@ -264,6 +275,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerPos),
+              offset: const Offset(85, 0),
             ),
             PortTemplate(
               id: 'plotter-power-neg',
@@ -272,6 +284,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerNeg),
+              offset: const Offset(125, 0),
             ),
             PortTemplate(
               id: 'plotter-nmea-in-pos',
@@ -280,6 +293,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'IN',
               side: 'left',
               color: colorForPort(PortTypes.nmeaInPos),
+              offset: const Offset(0, 36),
             ),
             PortTemplate(
               id: 'plotter-nmea-in-neg',
@@ -288,6 +302,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'IN',
               side: 'left',
               color: colorForPort(PortTypes.nmeaInNeg),
+              offset: const Offset(0, 72),
             ),
             PortTemplate(
               id: 'plotter-nmea-out-pos',
@@ -296,6 +311,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'OUT',
               side: 'right',
               color: colorForPort(PortTypes.nmeaOutPos),
+              offset: const Offset(0, 36),
             ),
             PortTemplate(
               id: 'plotter-nmea-out-neg',
@@ -304,6 +320,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'OUT',
               side: 'right',
               color: colorForPort(PortTypes.nmeaOutNeg),
+              offset: const Offset(0, 72),
             ),
           ],
         ),
@@ -314,7 +331,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
           manufacturer: 'Standard Horizon',
           model: 'GX2200',
           category: DeviceCategory.communication,
-          size: const Size(220, 150),
+          size: kDeviceSize,
           nominalVoltage: 12.0,
           currentDraw: 1.5,
           defaultVoltage: 12.0,
@@ -327,6 +344,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerPos),
+              offset: const Offset(85, 0),
             ),
             PortTemplate(
               id: 'vhf-power-neg',
@@ -335,6 +353,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'Power',
               side: 'bottom',
               color: colorForPort(PortTypes.powerNeg),
+              offset: const Offset(125, 0),
             ),
             PortTemplate(
               id: 'vhf-nmea-in-pos',
@@ -343,6 +362,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'IN',
               side: 'left',
               color: colorForPort(PortTypes.nmeaInPos),
+              offset: const Offset(0, 40),
             ),
             PortTemplate(
               id: 'vhf-nmea-in-neg',
@@ -351,6 +371,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
               group: 'IN',
               side: 'left',
               color: colorForPort(PortTypes.nmeaInNeg),
+              offset: const Offset(0, 76),
             ),
           ],
         ),
@@ -472,6 +493,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                 group: port.group,
                 side: port.side,
                 color: port.color,
+                offset: port.offset,
               ),
             )
             .toList(),
@@ -622,56 +644,46 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   static const double _portPinSize = 32;
+  static const double _portVisualSize = kPortVisualSize;
   static const double _portPinHalfSize = _portPinSize / 2;
-  static const double _portOutsideLargeOffset = 12;
-  static const double _portOutsideSmallOffset = 4;
-  static const double _portVerticalPadding = 36;
-  static const double _portHorizontalPadding = 36;
+  static const double _portHitboxInset = (_portPinSize - _portVisualSize) / 2;
 
-  Offset getPortPosition(DeviceModel device, PortModel port) {
-    final portsOnSide = device.ports.where((p) => p.side == port.side).toList();
-    final index = portsOnSide.indexWhere((p) => p.id == port.id);
-    final count = portsOnSide.length;
+  Offset portPosition(DeviceModel device, PortModel port) {
+    const double deviceWidth = kDeviceWidth;
+    const double deviceHeight = kDeviceHeight;
+    const double outOffset = -10.0;
 
-    double left = device.size.width / 2 - _portPinHalfSize;
-    double top = device.size.height / 2 - _portPinHalfSize;
+    double circleLeft;
+    double circleTop;
 
     switch (port.side) {
       case 'left':
+        circleLeft = outOffset;
+        circleTop = port.offset.dy;
+        break;
       case 'right':
-        double y;
-        if (count <= 1) {
-          y = device.size.height / 2;
-        } else {
-          final available = math.max(0, device.size.height - _portVerticalPadding * 2);
-          final step = available / (count - 1);
-          y = _portVerticalPadding + step * index;
-        }
-        top = y - _portPinHalfSize;
-        left = port.side == 'left' ? -_portOutsideLargeOffset : device.size.width - _portOutsideSmallOffset;
+        circleLeft = deviceWidth - outOffset - _portVisualSize;
+        circleTop = port.offset.dy;
+        break;
+      case 'bottom':
+        circleLeft = port.offset.dx;
+        circleTop = deviceHeight - outOffset - _portVisualSize;
         break;
       case 'top':
-      case 'bottom':
-        double x;
-        if (count <= 1) {
-          x = device.size.width / 2;
-        } else {
-          final available = math.max(0, device.size.width - _portHorizontalPadding * 2);
-          final step = available / (count - 1);
-          x = _portHorizontalPadding + step * index;
-        }
-        left = x - _portPinHalfSize;
-        top = port.side == 'top' ? -_portOutsideLargeOffset : device.size.height - _portOutsideSmallOffset;
+        circleLeft = port.offset.dx;
+        circleTop = outOffset;
         break;
       default:
+        circleLeft = port.offset.dx;
+        circleTop = port.offset.dy;
         break;
     }
 
-    return Offset(left, top);
+    return Offset(circleLeft - _portHitboxInset, circleTop - _portHitboxInset);
   }
 
   Offset _portCenterOffset(DeviceModel device, PortModel port) {
-    final position = getPortPosition(device, port);
+    final position = portPosition(device, port);
     return Offset(position.dx + _portPinHalfSize, position.dy + _portPinHalfSize);
   }
 
@@ -1190,13 +1202,16 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         ? Colors.redAccent
         : (isSelected ? Theme.of(context).colorScheme.primary : Colors.white24);
 
+    const double deviceWidth = kDeviceWidth;
+    const double deviceHeight = kDeviceHeight;
+
     final card = GestureDetector(
       onTap: () => _handleSelectDevice(device.id),
       onPanUpdate: (details) => _handleMoveDevice(device.id, details.delta, canvasSize),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: device.size.width,
-        height: device.size.height,
+        width: deviceWidth,
+        height: deviceHeight,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xFF161B22),
@@ -1259,7 +1274,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         children: [
           card,
           ...device.ports.map((port) {
-            final position = getPortPosition(device, port);
+            final position = portPosition(device, port);
             return Positioned(
               left: position.dx,
               top: position.dy,
@@ -1289,7 +1304,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     if (device.ports.any((p) => p.group == 'IN')) {
       labels.add(Positioned(
         left: 12,
-        top: device.size.height / 2 - 8,
+        top: kDeviceHeight / 2 - 8,
         child: const Text('IN', style: style),
       ));
     }
@@ -1297,7 +1312,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     if (device.ports.any((p) => p.group == 'OUT')) {
       labels.add(Positioned(
         right: 12,
-        top: device.size.height / 2 - 8,
+        top: kDeviceHeight / 2 - 8,
         child: const Text('OUT', style: style),
       ));
     }
@@ -1305,7 +1320,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     if (device.ports.any((p) => p.group == 'Power')) {
       labels.add(Positioned(
         bottom: 8,
-        left: device.size.width / 2 - 20,
+        left: kDeviceWidth / 2 - 20,
         child: const Text('POWER', style: style),
       ));
     }
@@ -1592,6 +1607,7 @@ class PortTemplate {
     required this.group,
     required this.side,
     required this.color,
+    required this.offset,
   });
 
   final String id;
@@ -1600,6 +1616,7 @@ class PortTemplate {
   final String group;
   final String side;
   final Color color;
+  final Offset offset;
 }
 
 class PortModel {
@@ -1611,6 +1628,7 @@ class PortModel {
     required this.group,
     required this.side,
     required this.color,
+    required this.offset,
   });
 
   final String id;
@@ -1620,6 +1638,7 @@ class PortModel {
   final String group;
   final String side;
   final Color color;
+  final Offset offset;
 
   PortModel copyForDevice(String newDeviceId) {
     return PortModel(
@@ -1630,6 +1649,7 @@ class PortModel {
       group: group,
       side: side,
       color: color,
+      offset: offset,
     );
   }
 
@@ -1712,7 +1732,7 @@ final List<DeviceModel> nmeaDevices = [
     model: 'NMEA 0183 GPS',
     category: 'Navigation',
     position: Offset.zero,
-    size: const Size(200, 140),
+    size: kDeviceSize,
     nominalVoltage: 12.0,
     actualVoltage: 12.0,
     currentDraw: 0.3,
@@ -1726,6 +1746,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerPos),
+        offset: const Offset(85, 0),
       ),
       PortModel(
         id: 'gps-power-neg',
@@ -1735,6 +1756,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerNeg),
+        offset: const Offset(125, 0),
       ),
       PortModel(
         id: 'gps-nmea-out-pos',
@@ -1744,6 +1766,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'OUT',
         side: 'right',
         color: colorForPort(PortTypes.nmeaOutPos),
+        offset: const Offset(0, 36),
       ),
       PortModel(
         id: 'gps-nmea-out-neg',
@@ -1753,6 +1776,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'OUT',
         side: 'right',
         color: colorForPort(PortTypes.nmeaOutNeg),
+        offset: const Offset(0, 72),
       ),
     ],
   ),
@@ -1762,7 +1786,7 @@ final List<DeviceModel> nmeaDevices = [
     model: 'NMEA 0183 Plotter',
     category: 'Navigation',
     position: Offset.zero,
-    size: const Size(240, 160),
+    size: kDeviceSize,
     nominalVoltage: 12.0,
     actualVoltage: 12.0,
     currentDraw: 2.5,
@@ -1776,6 +1800,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerPos),
+        offset: const Offset(85, 0),
       ),
       PortModel(
         id: 'plotter-power-neg',
@@ -1785,6 +1810,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerNeg),
+        offset: const Offset(125, 0),
       ),
       PortModel(
         id: 'plotter-nmea-in-pos',
@@ -1794,6 +1820,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'IN',
         side: 'left',
         color: colorForPort(PortTypes.nmeaInPos),
+        offset: const Offset(0, 36),
       ),
       PortModel(
         id: 'plotter-nmea-in-neg',
@@ -1803,6 +1830,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'IN',
         side: 'left',
         color: colorForPort(PortTypes.nmeaInNeg),
+        offset: const Offset(0, 72),
       ),
       PortModel(
         id: 'plotter-nmea-out-pos',
@@ -1812,6 +1840,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'OUT',
         side: 'right',
         color: colorForPort(PortTypes.nmeaOutPos),
+        offset: const Offset(0, 36),
       ),
       PortModel(
         id: 'plotter-nmea-out-neg',
@@ -1821,6 +1850,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'OUT',
         side: 'right',
         color: colorForPort(PortTypes.nmeaOutNeg),
+        offset: const Offset(0, 72),
       ),
     ],
   ),
@@ -1830,7 +1860,7 @@ final List<DeviceModel> nmeaDevices = [
     model: 'NMEA 0183 VHF',
     category: 'Communication',
     position: Offset.zero,
-    size: const Size(220, 150),
+    size: kDeviceSize,
     nominalVoltage: 12.0,
     actualVoltage: 12.0,
     currentDraw: 1.5,
@@ -1844,6 +1874,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerPos),
+        offset: const Offset(85, 0),
       ),
       PortModel(
         id: 'vhf-power-neg',
@@ -1853,6 +1884,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'Power',
         side: 'bottom',
         color: colorForPort(PortTypes.powerNeg),
+        offset: const Offset(125, 0),
       ),
       PortModel(
         id: 'vhf-nmea-in-pos',
@@ -1862,6 +1894,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'IN',
         side: 'left',
         color: colorForPort(PortTypes.nmeaInPos),
+        offset: const Offset(0, 40),
       ),
       PortModel(
         id: 'vhf-nmea-in-neg',
@@ -1871,6 +1904,7 @@ final List<DeviceModel> nmeaDevices = [
         group: 'IN',
         side: 'left',
         color: colorForPort(PortTypes.nmeaInNeg),
+        offset: const Offset(0, 76),
       ),
     ],
   ),
