@@ -30,6 +30,56 @@ Color colorForPort(String type) {
 
 Color colorForCable(String type) => colorForPort(type);
 
+class PortPin extends StatelessWidget {
+  const PortPin({
+    required this.port,
+    required this.onTap,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.selected,
+    super.key,
+  });
+
+  final PortModel port;
+  final VoidCallback onTap;
+  final GestureDragStartCallback onDragStart;
+  final GestureDragUpdateCallback onDragUpdate;
+  final GestureDragEndCallback onDragEnd;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: onTap,
+      onPanStart: onDragStart,
+      onPanUpdate: onDragUpdate,
+      onPanEnd: onDragEnd,
+      onPanCancel: () => onDragEnd(DragEndDetails()),
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: colorForPort(port.type),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? Colors.cyanAccent : Colors.white24,
+                width: selected ? 2 : 1,
+              ),
+              boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 2)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 bool portsAreCompatible(String a, String b) {
   if ((a == PortTypes.nmeaOutPos && b == PortTypes.nmeaInPos) ||
       (b == PortTypes.nmeaOutPos && a == PortTypes.nmeaInPos)) return true;
@@ -101,12 +151,11 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   final List<LogEntry> _logs = [];
 
   DeviceModel? _selectedDevice;
-  PortModel? _selectedPort;
+
+  PortModel? connectingFrom;
+  Offset? dragPosition;
 
   final TransformationController _transformController = TransformationController();
-
-  PortModel? _tempStartPort;
-  Offset? _tempCurrentPosition;
 
   final GlobalKey _canvasKey = GlobalKey();
 
@@ -437,7 +486,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       );
       _devices.add(device);
       _selectedDevice = device;
-      _selectedPort = null;
+      connectingFrom = null;
+      dragPosition = null;
       _addLog(LogLevel.info, 'Added ${template.catalogName}.');
     });
   }
@@ -446,7 +496,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     final device = _devices.firstWhere((d) => d.id == deviceId);
     setState(() {
       _selectedDevice = device;
-      _selectedPort = null;
+      connectingFrom = null;
+      dragPosition = null;
     });
   }
 
@@ -463,276 +514,221 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
   }
 
   void onPortTap(DeviceModel device, PortModel port) {
-    final portId = port.globalId;
+    final start = connectingFrom;
 
-    if (_tempStartPort != null) {
-      final startId = _tempStartPort!.globalId;
-      if (startId != portId) {
-        final origin = _resolvePortById(startId);
-        final target = _resolvePortById(portId);
-        if (origin != null && target != null) {
-          if (!portsAreCompatible(origin.port.type, target.port.type)) {
-            addLog('[WARN] incompatible: "${origin.port.type}" vs "${target.port.type}"', level: LogLevel.warn);
-          } else {
-            final connected = _attemptConnection(origin, target);
-            if (connected) {
-              checkForShortCircuits();
-            }
-          }
-        }
-      }
-      _tempStartPort = null;
-      _tempCurrentPosition = null;
-      setState(() {});
-      return;
-    }
-
-    if (_selectedPort == null) {
+    if (start == null) {
       setState(() {
-        _selectedPort = port;
+        connectingFrom = port;
+        dragPosition = null;
       });
       return;
     }
 
-    if (_selectedPort!.globalId == portId) {
+    if (start.globalId == port.globalId) {
       setState(() {
-        _selectedPort = null;
+        connectingFrom = null;
+        dragPosition = null;
       });
       return;
     }
 
-    final origin = _resolvePortById(_selectedPort!.globalId);
-    final target = _resolvePortById(portId);
-
-    if (origin == null || target == null) {
+    if (!portsAreCompatible(start.type, port.type)) {
+      addLog('[WARN] incompatible: "${start.type}" vs "${port.type}"', level: LogLevel.warn);
       setState(() {
-        _selectedPort = null;
+        connectingFrom = null;
+        dragPosition = null;
       });
       return;
     }
 
-    if (!portsAreCompatible(origin.port.type, target.port.type)) {
-      addLog('[WARN] incompatible: "${origin.port.type}" vs "${target.port.type}"', level: LogLevel.warn);
+    if (_hasCableBetween(start.globalId, port.globalId)) {
+      addLog('These ports are already connected.', level: LogLevel.warn);
       setState(() {
-        _selectedPort = null;
+        connectingFrom = null;
+        dragPosition = null;
       });
       return;
     }
 
-    final connected = _attemptConnection(origin, target);
-    if (connected) {
-      checkForShortCircuits();
-    }
+    setState(() {
+      _cables.add(
+        CableModel(
+          fromPortId: start.globalId,
+          toPortId: port.globalId,
+          type: start.type,
+        ),
+      );
+      connectingFrom = null;
+      dragPosition = null;
+    });
+    checkForShortCircuits();
+    addLog('[OK] Created connection between ${start.name} and ${port.name}.', level: LogLevel.ok);
   }
 
   void selectPortFromPanel(PortModel port) {
     setState(() {
-      _selectedPort = port;
+      connectingFrom = port;
+      dragPosition = null;
     });
   }
 
-  void onPortDragStart(DeviceModel device, PortModel port, DragStartDetails details) {
-    _tempStartPort = port;
-    _tempCurrentPosition = _globalToCanvas(details.globalPosition) ?? _getPortCenterForPort(port);
-    setState(() {});
+  void onPortDragStart(DeviceModel device, PortModel port, Offset globalPos) {
+    setState(() {
+      connectingFrom = port;
+      dragPosition = globalPos;
+    });
   }
 
-  void onPortDragUpdate(DragUpdateDetails details) {
-    if (_tempStartPort == null) return;
-    final position = _globalToCanvas(details.globalPosition);
-    if (position == null) return;
-    _tempCurrentPosition = position;
-    setState(() {});
+  void onPortDragUpdate(Offset globalPos) {
+    if (connectingFrom == null) {
+      return;
+    }
+    setState(() {
+      dragPosition = globalPos;
+    });
   }
 
   void onPortDragEnd() {
-    if (_tempStartPort == null || _tempCurrentPosition == null) {
-      _tempStartPort = null;
-      _tempCurrentPosition = null;
-      setState(() {});
-      return;
-    }
+    final start = connectingFrom;
+    final current = dragPosition;
 
-    final startPort = _tempStartPort!;
-    final startId = startPort.globalId;
-    final nearest = _findNearestPort(_tempCurrentPosition!, excludeGlobalId: startId);
-
-    if (nearest != null &&
-        _distanceToPort(nearest, _tempCurrentPosition!) < 25 &&
-        portsAreCompatible(startPort.type, nearest.port.type)) {
-      final origin = _resolvePortById(startId);
-      if (origin != null) {
-        if (_attemptConnection(origin, nearest)) {
-          checkForShortCircuits();
-        }
+    if (start != null && current != null) {
+      final nearest = findNearestPortGlobal(current, exclude: start.globalId);
+      if (nearest != null &&
+          distanceGlobal(nearest, current) < 28 &&
+          portsAreCompatible(start.type, nearest.type) &&
+          !_hasCableBetween(start.globalId, nearest.globalId)) {
+        setState(() {
+          _cables.add(
+            CableModel(
+              fromPortId: start.globalId,
+              toPortId: nearest.globalId,
+              type: start.type,
+            ),
+          );
+          connectingFrom = null;
+          dragPosition = null;
+        });
+        checkForShortCircuits();
+        addLog('[OK] Created connection (drag) between ${start.name} and ${nearest.name}.', level: LogLevel.ok);
+        return;
       }
-    } else {
-      addLog('[WARN] drop without valid target', level: LogLevel.warn);
-    }
-
-    _tempStartPort = null;
-    _tempCurrentPosition = null;
-    setState(() {});
-  }
-
-  bool _attemptConnection(_ResolvedPort origin, _ResolvedPort target) {
-    if (origin.port.globalId == target.port.globalId) {
-      setState(() {
-        _selectedPort = null;
-      });
-      return false;
-    }
-
-    final fromId = origin.port.globalId;
-    final toId = target.port.globalId;
-
-    final originType = origin.port.type.trim();
-    final targetType = target.port.type.trim();
-
-    if (!portsAreCompatible(originType, targetType)) {
-      addLog('[WARN] incompatible: "$originType" vs "$targetType"', level: LogLevel.warn);
-      setState(() {
-        _selectedPort = null;
-      });
-      return false;
-    }
-
-    final exists = _cables.any(
-      (cable) => (cable.fromPortId == fromId && cable.toPortId == toId) ||
-          (cable.fromPortId == toId && cable.toPortId == fromId),
-    );
-
-    if (exists) {
-      addLog('These ports are already connected.', level: LogLevel.warn);
-      setState(() {
-        _selectedPort = null;
-      });
-      return false;
     }
 
     setState(() {
-      final cableType = _preferredCableType(originType, targetType);
-      _cables.add(CableModel(fromPortId: fromId, toPortId: toId, type: cableType));
-      _selectedPort = null;
+      connectingFrom = null;
+      dragPosition = null;
     });
-    _addLog(LogLevel.ok, 'Created connection between ${origin.device.name} and ${target.device.name}.');
-    return true;
   }
 
-  static const double _portHitSize = 30;
-  static const double _portCircleSize = 14;
-  static const double _portOutsideOffset = 8;
+  static const double _portPinSize = 32;
+  static const double _portPinHalfSize = _portPinSize / 2;
+  static const double _portOutsideLargeOffset = 12;
+  static const double _portOutsideSmallOffset = 4;
+  static const double _portVerticalPadding = 36;
+  static const double _portHorizontalPadding = 36;
 
-  Offset _portOffset(DeviceModel device, PortModel port) {
-    const double verticalPadding = 36;
-    const double horizontalPadding = 36;
+  Offset getPortPosition(DeviceModel device, PortModel port) {
     final portsOnSide = device.ports.where((p) => p.side == port.side).toList();
     final index = portsOnSide.indexWhere((p) => p.id == port.id);
     final count = portsOnSide.length;
 
-    double x = device.size.width / 2;
-    double y = device.size.height / 2;
+    double left = device.size.width / 2 - _portPinHalfSize;
+    double top = device.size.height / 2 - _portPinHalfSize;
 
     switch (port.side) {
       case 'left':
       case 'right':
+        double y;
         if (count <= 1) {
           y = device.size.height / 2;
         } else {
-          final available = math.max(0, device.size.height - verticalPadding * 2);
+          final available = math.max(0, device.size.height - _portVerticalPadding * 2);
           final step = available / (count - 1);
-          y = verticalPadding + step * index;
+          y = _portVerticalPadding + step * index;
         }
-        x = port.side == 'left' ? 0 : device.size.width;
-        break;
-      case 'bottom':
-        if (count <= 1) {
-          x = device.size.width / 2;
-        } else {
-          final available = math.max(0, device.size.width - horizontalPadding * 2);
-          final step = available / (count - 1);
-          x = horizontalPadding + step * index;
-        }
-        y = device.size.height;
+        top = y - _portPinHalfSize;
+        left = port.side == 'left' ? -_portOutsideLargeOffset : device.size.width - _portOutsideSmallOffset;
         break;
       case 'top':
+      case 'bottom':
+        double x;
         if (count <= 1) {
           x = device.size.width / 2;
         } else {
-          final available = math.max(0, device.size.width - horizontalPadding * 2);
+          final available = math.max(0, device.size.width - _portHorizontalPadding * 2);
           final step = available / (count - 1);
-          x = horizontalPadding + step * index;
+          x = _portHorizontalPadding + step * index;
         }
-        y = 0;
+        left = x - _portPinHalfSize;
+        top = port.side == 'top' ? -_portOutsideLargeOffset : device.size.height - _portOutsideSmallOffset;
         break;
       default:
-        x = device.size.width / 2;
-        y = device.size.height / 2;
         break;
     }
 
-    switch (port.side) {
-      case 'left':
-        x -= _portOutsideOffset;
-        break;
-      case 'right':
-        x += _portOutsideOffset;
-        break;
-      case 'bottom':
-        y += _portOutsideOffset;
-        break;
-      case 'top':
-        y -= _portOutsideOffset;
-        break;
-    }
-
-    return Offset(x, y);
+    return Offset(left, top);
   }
 
-  Offset _getPortCenter(_ResolvedPort resolved) {
-    return resolved.device.position + _portOffset(resolved.device, resolved.port);
+  Offset _portCenterOffset(DeviceModel device, PortModel port) {
+    final position = getPortPosition(device, port);
+    return Offset(position.dx + _portPinHalfSize, position.dy + _portPinHalfSize);
   }
 
-  Offset? _getPortCenterForPort(PortModel port) {
+  Offset getPortCenterLocal(DeviceModel device, PortModel port) {
+    return device.position + _portCenterOffset(device, port);
+  }
+
+  Offset? getPortCenterGlobal(PortModel port) {
     for (final device in _devices) {
       if (device.id == port.deviceId) {
-        return device.position + _portOffset(device, port);
+        final local = getPortCenterLocal(device, port);
+        return canvasLocalToGlobal(local);
       }
     }
     return null;
   }
 
-  Offset? _globalToCanvas(Offset globalPosition) {
+  Offset? canvasGlobalToLocal(Offset globalPosition) {
     final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return null;
     return renderBox.globalToLocal(globalPosition);
   }
 
-  _ResolvedPort? _findNearestPort(Offset point, {String? excludeGlobalId}) {
-    _ResolvedPort? best;
+  Offset? canvasLocalToGlobal(Offset localPosition) {
+    final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return null;
+    return renderBox.localToGlobal(localPosition);
+  }
+
+  PortModel? findNearestPortGlobal(Offset globalPosition, {String? exclude}) {
+    PortModel? nearest;
     double bestDistance = double.infinity;
 
     for (final device in _devices) {
-      for (var i = 0; i < device.ports.length; i++) {
-        final port = device.ports[i];
-        if (excludeGlobalId != null && port.globalId == excludeGlobalId) {
+      for (final port in device.ports) {
+        if (exclude != null && (port.globalId == exclude || port.id == exclude)) {
           continue;
         }
-        final center = device.position + _portOffset(device, port);
-        final distance = (center - point).distance;
+        final center = getPortCenterGlobal(port);
+        if (center == null) continue;
+        final distance = (center - globalPosition).distance;
         if (distance < bestDistance) {
           bestDistance = distance;
-          best = _ResolvedPort(device: device, port: port, portIndex: i);
+          nearest = port;
         }
       }
     }
 
-    return best;
+    return nearest;
   }
 
-  double _distanceToPort(_ResolvedPort port, Offset point) {
-    final center = _getPortCenter(port);
-    return (center - point).distance;
+  double distanceGlobal(PortModel port, Offset globalPosition) {
+    final center = getPortCenterGlobal(port);
+    if (center == null) {
+      return double.infinity;
+    }
+    return (center - globalPosition).distance;
   }
 
   _ResolvedPort? _resolvePortById(String portId) {
@@ -778,7 +774,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       _cables.clear();
       _logs.clear();
       _selectedDevice = null;
-      _selectedPort = null;
+      connectingFrom = null;
+      dragPosition = null;
       _simulationRunning = false;
       _hasShortCircuit = false;
     });
@@ -817,7 +814,10 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
         (c) => portIds.contains(c.fromPortId) || portIds.contains(c.toPortId),
       );
       _selectedDevice = null;
-      _selectedPort = null;
+      if (connectingFrom != null && connectingFrom!.deviceId == deviceId) {
+        connectingFrom = null;
+      }
+      dragPosition = null;
     });
 
     addLog('[INFO] Device removed from canvas.');
@@ -990,19 +990,6 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     battery.socPercent = newSoc.clamp(0, 100);
   }
 
-  String _preferredCableType(String a, String b) {
-    if (a == b) return a;
-    if ({PortTypes.nmeaOutPos, PortTypes.nmeaInPos}.contains(a) &&
-        {PortTypes.nmeaOutPos, PortTypes.nmeaInPos}.contains(b)) {
-      return PortTypes.nmeaOutPos;
-    }
-    if ({PortTypes.nmeaOutNeg, PortTypes.nmeaInNeg}.contains(a) &&
-        {PortTypes.nmeaOutNeg, PortTypes.nmeaInNeg}.contains(b)) {
-      return PortTypes.nmeaOutNeg;
-    }
-    return a;
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -1145,14 +1132,24 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                   children: [
                     CustomPaint(size: size, painter: _GridPainter()),
                     ..._buildCables(),
-                    if (_tempStartPort != null && _tempCurrentPosition != null)
-                      CustomPaint(
-                        painter: _TempCablePainter(
-                          start: _getPortCenterForPort(_tempStartPort!) ?? _tempCurrentPosition!,
-                          end: _tempCurrentPosition!,
-                          color: colorForPort(_tempStartPort!.type),
-                        ),
-                        size: Size.infinite,
+                    if (connectingFrom != null && dragPosition != null)
+                      Builder(
+                        builder: (_) {
+                          final startGlobal = getPortCenterGlobal(connectingFrom!);
+                          final start = startGlobal != null ? canvasGlobalToLocal(startGlobal) : null;
+                          final end = canvasGlobalToLocal(dragPosition!);
+                          if (start == null || end == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return CustomPaint(
+                            painter: _TempCablePainter(
+                              start: start,
+                              end: end,
+                              color: colorForPort(connectingFrom!.type),
+                            ),
+                            size: Size.infinite,
+                          );
+                        },
                       ),
                     ..._devices.map((device) => _buildDeviceWidget(device, size)),
                   ],
@@ -1170,8 +1167,8 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
       final from = _resolvePortById(cable.fromPortId);
       final to = _resolvePortById(cable.toPortId);
       if (from == null || to == null) continue;
-      final fromOffset = _getPortCenter(from);
-      final toOffset = _getPortCenter(to);
+      final fromOffset = getPortCenterLocal(from.device, from.port);
+      final toOffset = getPortCenterLocal(to.device, to.port);
       final isShort = cable.isFault;
       final cableColor = cable.isFault ? Colors.redAccent : colorForCable(cable.type);
       final strokeWidth = isShort ? 5.0 : 3.0;
@@ -1189,70 +1186,98 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
 
   Widget _buildDeviceWidget(DeviceModel device, Size canvasSize) {
     final isSelected = _selectedDevice?.id == device.id;
-    final borderColor = device.voltageWarning ? Colors.redAccent : (isSelected ? Theme.of(context).colorScheme.primary : Colors.white24);
+    final borderColor = device.voltageWarning
+        ? Colors.redAccent
+        : (isSelected ? Theme.of(context).colorScheme.primary : Colors.white24);
+
+    final card = GestureDetector(
+      onTap: () => _handleSelectDevice(device.id),
+      onPanUpdate: (details) => _handleMoveDevice(device.id, details.delta, canvasSize),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: device.size.width,
+        height: device.size.height,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: device.voltageWarning ? 3 : 1.5),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        device.category == 'Power'
+                            ? Icons.battery_full
+                            : device.category == 'Navigation'
+                                ? Icons.navigation
+                                : Icons.memory,
+                        size: 14,
+                        color: Colors.cyanAccent,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          device.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  if (device.model != null)
+                    Text(device.model!, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                ],
+              ),
+            ),
+            ..._buildGroupLabels(device),
+          ],
+        ),
+      ),
+    );
+
     return Positioned(
       left: device.position.dx,
       top: device.position.dy,
-      child: GestureDetector(
-        onTap: () => _handleSelectDevice(device.id),
-        onPanUpdate: (details) => _handleMoveDevice(device.id, details.delta, canvasSize),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: device.size.width,
-          height: device.size.height,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF161B22),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor, width: device.voltageWarning ? 3 : 1.5),
-            boxShadow: [
-              if (isSelected)
-                BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-            ],
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          device.category == 'Power'
-                              ? Icons.battery_full
-                              : device.category == 'Navigation'
-                                  ? Icons.navigation
-                                  : Icons.memory,
-                          size: 14,
-                          color: Colors.cyanAccent,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            device.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    if (device.model != null)
-                      Text(device.model!, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-                  ],
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          card,
+          ...device.ports.map((port) {
+            final position = getPortPosition(device, port);
+            return Positioned(
+              left: position.dx,
+              top: position.dy,
+              child: Tooltip(
+                message: port.name,
+                waitDuration: const Duration(milliseconds: 300),
+                child: PortPin(
+                  port: port,
+                  selected: connectingFrom?.globalId == port.globalId,
+                  onTap: () => onPortTap(device, port),
+                  onDragStart: (details) => onPortDragStart(device, port, details.globalPosition),
+                  onDragUpdate: (details) => onPortDragUpdate(details.globalPosition),
+                  onDragEnd: (_) => onPortDragEnd(),
                 ),
               ),
-              ..._buildGroupLabels(device),
-              ...device.ports.map((port) => buildPortWidget(device, port)),
-            ],
-          ),
-        ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -1286,70 +1311,6 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
     }
 
     return labels;
-  }
-
-  Widget buildPortWidget(DeviceModel device, PortModel port) {
-    final isSelected = _selectedPort?.globalId == port.globalId;
-    final center = _portOffset(device, port);
-    final left = center.dx - _portHitSize / 2;
-    final top = center.dy - _portHitSize / 2;
-
-    Alignment alignment;
-    switch (port.side) {
-      case 'left':
-        alignment = Alignment.centerLeft;
-        break;
-      case 'right':
-        alignment = Alignment.centerRight;
-        break;
-      case 'bottom':
-        alignment = Alignment.bottomCenter;
-        break;
-      case 'top':
-        alignment = Alignment.topCenter;
-        break;
-      default:
-        alignment = Alignment.center;
-        break;
-    }
-
-    final borderColor = isSelected ? Colors.cyanAccent : Colors.white24;
-    final borderWidth = isSelected ? 2.0 : 1.0;
-
-    return Positioned(
-      left: left,
-      top: top,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => onPortTap(device, port),
-        onPanStart: (details) => onPortDragStart(device, port, details),
-        onPanUpdate: (details) => onPortDragUpdate(details),
-        onPanEnd: (_) => onPortDragEnd(),
-        onPanCancel: onPortDragEnd,
-        child: SizedBox(
-          width: _portHitSize,
-          height: _portHitSize,
-          child: Tooltip(
-            message: port.name,
-            waitDuration: const Duration(milliseconds: 300),
-            child: Align(
-              alignment: alignment,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: _portCircleSize,
-                height: _portCircleSize,
-                decoration: BoxDecoration(
-                  color: colorForPort(port.type),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: borderColor, width: borderWidth),
-                  boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 2)],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildPropertiesPanel(ColorScheme colorScheme) {
@@ -1418,7 +1379,7 @@ class _BlueBusHomePageState extends State<BlueBusHomePage> {
                       ...device.ports.map(
                         (port) {
                           final portColor = port.color;
-                          final isSelectedPort = _selectedPort?.globalId == port.globalId;
+                          final isSelectedPort = connectingFrom?.globalId == port.globalId;
                           return GestureDetector(
                             onTap: () => selectPortFromPanel(port),
                             child: AnimatedContainer(
